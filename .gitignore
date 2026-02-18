@@ -1,0 +1,5 @@
+/bin/pseudo
+/bin/pseudopod
+*.o
+*.a
+/.nfs*
