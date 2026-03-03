@@ -14,17 +14,19 @@
 #include <string.h>
 
 #define ID_UNCHANGED 0xFFFFFFFF
+#define ID_MAX 0xFFFFFFFF
 
-static inline void handle_setid(syscall_ctx_t* sc, ids_t* id) {
+static inline void handle_setid(syscall_ctx_t* sc, id_state_t* idstate, int isgid) {
     sc->no = -1;
     uint64_t newv = sc->args[0];
-    if (newv > ID_UNCHANGED) {
+    if (newv > ID_MAX) {
         sc->ret = (unsigned long long)-EINVAL;
         return;
     }
-    if (newv != ID_UNCHANGED) {
-        id->real = (uint32_t)newv;
+    if (idstate->id[0].effective == 0) {
+      idstate->id[isgid].real = idstate->id[isgid].saved = (uint32_t)newv;
     }
+    idstate->id[isgid].effective = (uint32_t)newv;
     sc->ret = 0;
 }
 
@@ -34,7 +36,7 @@ static inline void handle_setreid(syscall_ctx_t* sc, ids_t* id) {
     uint64_t new_effective = sc->args[1];
 
     if (new_effective != ID_UNCHANGED) {
-        if (new_effective > ID_UNCHANGED) {
+        if (new_effective > ID_MAX) {
             sc->ret = (unsigned long long)-EINVAL;
             return;
         }
@@ -42,7 +44,7 @@ static inline void handle_setreid(syscall_ctx_t* sc, ids_t* id) {
         if (id->effective != id->real) id->saved = id->effective;
     }
     if (new_real != ID_UNCHANGED) {
-        if (new_real > ID_UNCHANGED) {
+        if (new_real > ID_MAX) {
             sc->ret = (unsigned long long)-EINVAL;
             return;
         }
@@ -58,9 +60,9 @@ static inline void handle_setresid(syscall_ctx_t* sc, ids_t* id) {
     uint64_t new_effective = sc->args[1];
     uint64_t new_saved     = sc->args[2];
 
-    if (new_real      > ID_UNCHANGED ||
-        new_effective > ID_UNCHANGED ||
-        new_saved     > ID_UNCHANGED) {
+    if (new_real      > ID_MAX ||
+        new_effective > ID_MAX ||
+        new_saved     > ID_MAX) {
         sc->ret = (unsigned long long)-EINVAL;
         return;
     }
@@ -90,7 +92,7 @@ int handle_uid_syscalls(pid_t pid, syscall_ctx_t* sc, void* v_args) {
     switch (sc->no) {
       case __NR_setuid:
         DEBUG(stderr, "setuid: %lu\n", (unsigned long)sc->args[0]);
-        handle_setid(sc, &id_state->id[0]);
+        handle_setid(sc, id_state, 0);
         break;
       case __NR_setreuid:
         DEBUG(stderr, "setreuid: %lu %lu\n", (unsigned long)sc->args[0], (unsigned long)sc->args[1]);
@@ -102,7 +104,7 @@ int handle_uid_syscalls(pid_t pid, syscall_ctx_t* sc, void* v_args) {
         break;
       case __NR_setgid:
         DEBUG(stderr, "setgid: %lu\n", (unsigned long)sc->args[0]);
-        handle_setid(sc, &id_state->id[1]);
+        handle_setid(sc, id_state, 1);
         break;
       case __NR_setregid:
         DEBUG(stderr, "setregid: %lu %lu\n", (unsigned long)sc->args[0], (unsigned long)sc->args[1]);

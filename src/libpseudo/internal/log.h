@@ -21,6 +21,10 @@
     fprintf(stderr, "ERR: " fmt, ##__VA_ARGS__); \
 } while(0)
 
+// print errno and terminate
 void die(const char *msg);
+
+// print message and terminate
+void fatal(const char *msg);
 
 #endif

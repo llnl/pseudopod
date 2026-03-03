@@ -38,7 +38,7 @@ typedef void cb_manager_t;
 typedef struct {
     pseudo_cb_t* callbacks;
     int len;
-    cb_manager_t* _mgr;
+    int size;
 } pseudo_callbacks_t;
 
 // parameters for tracee
@@ -81,8 +81,8 @@ void pseudo_free_config(pseudo_config_t* cfg);
 void pseudo_cb_init(pseudo_callbacks_t* cbs);
 void pseudo_cb_free(pseudo_callbacks_t* cbs);
 // copies *sc_cb into cbs->callbacks - reallocs array!
-int pseudo_cb_add(pseudo_callbacks_t* cbs, void* cb, void* cb_args);
-int pseudo_cb_adds(pseudo_callbacks_t* cbs, const pseudo_cb_t* pseudo_cb);
+void pseudo_cb_add(pseudo_callbacks_t* cbs, void* cb, void* cb_args);
+void pseudo_cb_adds(pseudo_callbacks_t* cbs, const pseudo_cb_t* pseudo_cb);
 
 int pseudo_run(pseudo_config_t* cfg);
 

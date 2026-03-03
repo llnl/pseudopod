@@ -4,8 +4,14 @@
 #include "internal/log.h"
 #include <error.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 void die(const char *msg) {
     perror(msg);
+    exit(EXIT_FAILURE);
+}
+
+void fatal(const char *msg) {
+    fprintf(stderr, "%s\n", msg);
     exit(EXIT_FAILURE);
 }
