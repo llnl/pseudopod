@@ -5,7 +5,7 @@ AR       := ar
 CFLAGS   := -Wall -Wextra -O3 -fPIC -DUSE_LIBCAP
 CXXFLAGS := $(CFLAGS) -std=c++17
 CPPFLAGS := -I./include
-LDFLAGS  := -static-libstdc++ -static-libgcc
+LDFLAGS  := -static-libgcc
 LIBS     := -lcap
 
 # Directories
