@@ -20,10 +20,8 @@ LIB_C_SRCS   := \
   $(SRCDIR)/libpseudo/log.c \
   $(SRCDIR)/libpseudo/syscall.c \
   $(SRCDIR)/libpseudo/emulation.c \
-  $(SRCDIR)/libpseudo/virtid.c
-
-LIB_CXX_SRCS := \
-  $(SRCDIR)/libpseudo/containers.cpp
+  $(SRCDIR)/libpseudo/virtid.c \
+  $(SRCDIR)/libpseudo/containers.c
 
 # App sources
 PSEUDO_SRCS := \
@@ -35,7 +33,6 @@ POD_SRCS := \
 
 # Objects (in-place, next to sources)
 LIB_C_OBJS    := $(LIB_C_SRCS:.c=.o)
-LIB_CXX_OBJS  := $(LIB_CXX_SRCS:.cpp=.o)
 PSEUDO_OBJS   := $(PSEUDO_SRCS:.c=.o)
 POD_OBJS      := $(filter %.o, $(POD_SRCS:.c=.o) $(POD_SRCS:.cpp=.o))
 

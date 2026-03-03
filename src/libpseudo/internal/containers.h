@@ -7,54 +7,32 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-
-#  ifdef __cplusplus
+#ifdef __cplusplus
 extern "C" {
-#  endif
+#endif
 
 #include <pseudo/pseudo.h>
 
+/* Opaque container for PID‑specific id_state tracking */
 typedef struct id_state_container_t idtrack_t;
 
-idtrack_t* get_id_tracker();
+/* Allocation / deallocation */
+idtrack_t* get_id_tracker(void);
 void free_id_tracker(idtrack_t* id_states);
 
+/* ID state operations */
 id_state_t* get_id_state(idtrack_t* idstates, pid_t pid);
 id_state_t* unshare_id_state(idtrack_t* idstates, pid_t old_pid, pid_t new_pid);
 void erase_id_state(idtrack_t* idstates, pid_t pid);
 
+/* Callback manager operations */
 void pseudo_cb_init(pseudo_callbacks_t* params);
 void pseudo_cb_free(pseudo_callbacks_t* params);
-// copies *sc_cb into params->callbacks - reallocs array!
 int pseudo_cb_adds(pseudo_callbacks_t* params, const pseudo_cb_t* ps_cb);
 int pseudo_cb_add(pseudo_callbacks_t* params, void* cb, void* cb_args);
 
-#  ifdef __cplusplus
+#ifdef __cplusplus
 }
-#include <map>
-#include <list>
-
-class IDStateContainer {
-    std::map<pid_t, id_state_t> id_states;
-public:
-    id_state_t* get(pid_t pid);
-    id_state_t* unshare(pid_t old_pid, pid_t new_pid);
-    void invalidate(pid_t pid);
-};
-
-class CallbackManager {
-    std::list<pseudo_cb_t> callbacks;
-    pseudo_callbacks_t* managed;
-    int update_managed();
-public:
-    CallbackManager(pseudo_callbacks_t* managed);
-    int add_cb(const pseudo_cb_t* cb);
-    ~CallbackManager() {
-        if (this->managed->callbacks) { delete this->managed->callbacks; }
-
-    }
-};
-
-#  endif
-
 #endif
+
+#endif // LIBPSEUDO_CONTAINERS_H
