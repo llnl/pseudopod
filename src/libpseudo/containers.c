@@ -16,16 +16,16 @@
 
 // ID‑state container (C implementation)
 
-typedef struct id_state_entry_t {
+typedef struct {
     pid_t      pid;
     id_state_t state;
-};
+} id_state_entry_t;
 
-typedef struct id_state_container_c {
+typedef struct {
     id_state_entry_t *entries;
     size_t            len;
     size_t            capacity;
-};
+} id_state_container_c;
 
 
 /**
@@ -153,12 +153,12 @@ static void container_invalidate(id_state_container_c *c, pid_t pid)
 
 // Callback manager (C implementation)
 
-typedef struct callback_manager_c {
+typedef struct {
     pseudo_cb_t        *array;
     size_t              len;
     size_t              capacity;
     pseudo_callbacks_t *managed;
-};
+} callback_manager_c;
 
 /**
  * Ensure the callback manager can hold at least `needed` callbacks.
