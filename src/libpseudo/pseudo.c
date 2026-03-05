@@ -44,6 +44,7 @@ int pseudo_run(pseudo_config_t* pseudo_cfg) {
 
     DEBUG(stderr, "pseudo_run: clone succeded\n");
 
+    // parent callbacks (user-attached, including virtid_parent_cb if enabled)
     for (int i = 0; i < cfg->cbs.len; i++) {
         DEBUG(stderr, "pseudo_run: executing callback %d\n", i);
         void* cb_args = cfg->cbs.callbacks[i].cbargs;
@@ -55,20 +56,8 @@ int pseudo_run(pseudo_config_t* pseudo_cfg) {
 
     DEBUG(stderr, "pseudo_run: parent callback succeded\n");
 
-    if (cfg->virt_enabled) {
-        idtrack_t* id_states = get_id_tracker();
-        virtid_attach_handlers(pseudo_cfg, id_states);
-        unshare_id_state(id_states, getpid(), child);
-
-        handle_events(child, pseudo_cfg);
-    } else {
-        int status;
-        if (waitpid(child, &status, WUNTRACED) == -1) { die("waitpid initial"); }
-        continue_child(child);
-        DEBUG(stderr, "pseudo_run: waiting for child exit\n");
-        waitpid(child, &status, 0);
-
-    }
+    // Always run the event loop.
+    handle_events(child, pseudo_cfg);
     DEBUG(stderr, "pseudo_run: done\n");
 
     return 0;
