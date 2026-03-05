@@ -215,11 +215,11 @@ void virtid_free(virtid_t* v) {
 }
 
 // set base id for virtual context
-void virtid_set_base(virtid_t* v, const id_state_t* base_id) {
+void virtid_set_id(virtid_t* v, const id_state_t* base_id) {
 }
 
 // get base id for virtual context
-const id_state_t* virtid_get_base(const virtid_t* v) {
+const id_state_t* virtid_get_id(const virtid_t* v) {
 }
 
 static int virtid_parent_cb(pid_t child, void* cb_args) {
