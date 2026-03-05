@@ -16,6 +16,11 @@
 #define ID_UNCHANGED 0xFFFFFFFF
 #define ID_MAX 0xFFFFFFFF
 
+struct virtid {
+    id_state_t base;
+    idtrack_t* tracker;
+};
+
 static inline void handle_setid(syscall_ctx_t* sc, id_state_t* idstate, int isgid) {
     sc->no = -1;
     uint64_t newv = sc->args[0];
@@ -183,14 +188,73 @@ static int handle_trace_events(pid_t pid, int status, void* cb_args) {
     return 0;
 }
 
-void virtid_attach_handlers(pseudo_config_t* cfg, idtrack_t* id_states) {
-    DEBUG(stderr, "virtid_attach_handlers: attach emulation\n");
-    id_state_t* base_id = get_id_state(id_states, getpid());
-    if (!base_id) { die("Failed to get ID state tracker."); }
-    memcpy(base_id, &cfg->cfg_parent.base_id, sizeof(id_state_t));
-    DEBUG(stderr, "base_id: %d %d %d\n", base_id->id[0].real, base_id->id[0].effective, base_id->id[0].saved);
+// keeping existing id helpers and syscall handlers for now. below are new
+// virtid context and handler management functions.
 
-    // attach id tracker
-    pseudo_cb_add(&cfg->cfg_syscall.cbs, &handle_uid_syscalls, id_states);
-    pseudo_cb_add(&cfg->cfg_tracer.cbs, &handle_trace_events, id_states);
+// initialize base id state to the current real uid/gid of the process.
+static void id_state_init(id_state_t* t) {
+    uid_t u = getuid();
+    gid_t g = getgid();
+    // e.g., real = effective = saved = {u, g}
+    // alternatively, we could just make it that virtid_init base_id argument
+    // can't be NULL; the client has to deal with defaults and we don't have to
+    // worry about it here.
+}
+
+virtid_t* virtid_init(const id_state_t* base_id) {
+    // allocate virtid_t context
+    // if base_id NULL, call id_state_init(&v->base); otherwise
+    // copy base_id to v->base
+
+    // set v->tracker = NULL;
+    return v;
+}
+
+void virtid_free(virtid_t* v) {
+    // tracker is global-ish via get_id_tracker(); do not free here? IDK
+}
+
+// set base id for virtual context
+void virtid_set_id(virtid_t* v, const id_state_t* base_id) {
+}
+
+// get base id for virtual context
+const id_state_t* virtid_get_id(const virtid_t* v) {
+}
+
+static int virtid_parent_cb(pid_t child, void* cb_args) {
+    virtid_t* v = (virtid_t*)cb_args;
+    // if v->tracker is NULL, set it via get_id_tracker() or die trying
+
+    // seed base ID state for the tracer (parent) pid
+    // e.g., id_state_t base_state = get_id_state(v->tracker, getpid())
+
+    // give newly-cloned child its own copy of the state
+    // unshare_id_state(v->tracker, getpid(), child);
+    return 0;
+}
+
+static int virtid_syscall_cb(pid_t pid, syscall_ctx_t* sc, void* cb_args) {
+    virtid_t* v = (virtid_t*)cb_args;
+
+    // copy/paste from handle_uid_syscalls but taking virtid_t* 
+
+    // then copy/resue existing switch(sc->no) logic, using `state`
+    // instead of `id_state`
+    // ...
+    return 0;
+}
+
+static int virtid_tracer_cb(pid_t pid, int status, void* cb_args) {
+    virtid_t* v = (virtid_t*)cb_args;
+    // copy/paste from handle_trace_events but taking virtid_t* instead of
+    // idtrack
+}
+
+virtid_callbacks_t virtid_callbacks(virtid_t* v) {
+    virtid_callbacks_t vcbs;
+
+    // vbs.{parent,tracer,syscall}.{cb,args} =(void *){virtid_{parent,tracer,syscall}_cb, v}
+
+    return vcbs;
 }

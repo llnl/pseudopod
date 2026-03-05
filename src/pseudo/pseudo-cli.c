@@ -125,9 +125,16 @@ int main(int argc, char *argv[]) {
 
     cfg.cfg_child.child_argv    = targv;
     cfg.cfg_child.filters       = filters;
-    cfg.cfg_parent.base_id      = base_id;
-    cfg.cfg_parent.virt_enabled = !fakeroot;
 
-    return pseudo_run(&cfg);
+    virtid_t* v = NULL;
+    if (!fakeroot) {
+        v = virtid_init(&base_id);
+        virtid_callbacks_t vcbs = virtid_callbacks(v);
+
+        pseudo_cb_adds(&cfg.cfg_parent.cbs,  &vcbs.parent);
+        pseudo_cb_adds(&cfg.cfg_tracer.cbs,  &vcbs.tracer);
+        pseudo_cb_adds(&cfg.cfg_syscall.cbs, &vcbs.syscall);
+    }
+        return pseudo_run(&cfg);
 }
 
