@@ -1,8 +1,9 @@
 // Copyright (c) Lawrence Livermore National Security, LLC and other Pseudopod Contributors. See top-level LICENSE and COPYRIGHT files for dates and other details.
 // SPDX-License-Identifier: (Apache-2.0)
 
-#include "internal/containers.h"
-#include "internal/log.h"
+#include "libpseudo/internal/id_t.h"
+#include "libpseudo/internal/log.h"
+#include "handlers/virtid.h"
 #include <pseudo/pseudo.h>
 #include <pseudo/syscall.h>
 #include <sys/types.h>
@@ -15,6 +16,46 @@
 
 #define ID_UNCHANGED 0xFFFFFFFF
 #define ID_MAX 0xFFFFFFFF
+
+virtid_callbacks_t virtid_callbacks(idtrack_t* id_states)
+{
+    virtid_callbacks_t out;
+    memset(&out, 0, sizeof(out));
+
+    /* parent: seed base + unshare to child */
+    out.parent.cb     = (void*)virtid_parent_cb;
+    out.parent.cbargs = (void*)id_states;
+
+    /* tracer: fork/clone unshare + exit cleanup */
+    out.tracer.cb     = (void*)handle_trace_events;
+    out.tracer.cbargs = (void*)id_states;
+
+    /* syscall: uid/gid virtualization */
+    out.syscall.cb     = (void*)handle_uid_syscalls;
+    out.syscall.cbargs = (void*)id_states;
+
+    return out;
+}
+
+static int virtid_parent_cb(pid_t child, void* cb_args)
+{
+    idtrack_t* id_states = (idtrack_t*)cb_args;
+    pid_t parent = getpid();
+
+    id_state_t* base = get_id_state(id_states, parent);
+    if (!base) {
+        die("virtid: Failed to get base ID state.");
+    }
+
+    /* Seed from tracker-owned base_id */
+    memcpy(base, &id_states->base_id, sizeof(*base));
+
+    /* Give child its own copy of the parent’s state */
+    unshare_id_state(id_states, parent, child);
+    return 0;
+}
+
+// Private
 
 static inline void handle_setid(syscall_ctx_t* sc, id_state_t* idstate, int isgid) {
     sc->no = -1;
@@ -181,16 +222,4 @@ static int handle_trace_events(pid_t pid, int status, void* cb_args) {
         }
     }
     return 0;
-}
-
-void virtid_attach_handlers(pseudo_config_t* cfg, idtrack_t* id_states) {
-    DEBUG(stderr, "virtid_attach_handlers: attach emulation\n");
-    id_state_t* base_id = get_id_state(id_states, getpid());
-    if (!base_id) { die("Failed to get ID state tracker."); }
-    memcpy(base_id, &cfg->cfg_parent.base_id, sizeof(id_state_t));
-    DEBUG(stderr, "base_id: %d %d %d\n", base_id->id[0].real, base_id->id[0].effective, base_id->id[0].saved);
-
-    // attach id tracker
-    pseudo_cb_add(&cfg->cfg_syscall.cbs, &handle_uid_syscalls, id_states);
-    pseudo_cb_add(&cfg->cfg_tracer.cbs, &handle_trace_events, id_states);
 }

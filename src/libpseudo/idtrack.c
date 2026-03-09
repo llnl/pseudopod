@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: (Apache-2.0)
 
 #define _GNU_SOURCE
-#include "internal/containers.h"
+#include "internal/id_t.h"
 #include "internal/log.h"
 #include <stdlib.h>
 #include <string.h>
 
 // ID state tracker
 
-idtrack_t* get_id_tracker() {
+idtrack_t* idtrack_init() {
     idtrack_t* idt = (idtrack_t*) malloc(sizeof(idtrack_t));
     if (!idt) {
         die("get_id_tracker: failed to allocate memory: ");
@@ -18,7 +18,7 @@ idtrack_t* get_id_tracker() {
     return idt;
 }
 
-void free_id_tracker(idtrack_t* id_states) {
+void idtrack_free(idtrack_t* id_states) {
     for (int i = 0; i < IDST_L1_SZ; i++) {
         if (id_states->l1[i]) {
             free(&id_states->l1[i]);
@@ -66,7 +66,6 @@ void erase_id_state(idtrack_t* idstates, pid_t pid) {
 }
 
 // Callback manager
-
 
 void _pseudo_cb_grow(pseudo_callbacks_t* cbs) {
     cbs->callbacks = (pseudo_cb_t*) reallocarray(cbs->callbacks, cbs->size+8, sizeof(pseudo_cb_t));
