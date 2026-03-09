@@ -16,7 +16,7 @@
 
 extern "C" {
 #include <pseudo/pseudo.h>
-#include <pseudo/idtrack.h>
+#include <handlers/idtrack.h>
 #include <handlers/virtid.h>
 #include "userns.h"
 }

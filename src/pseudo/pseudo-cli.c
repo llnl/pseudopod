@@ -10,7 +10,7 @@
 #include <sched.h>
 #include <sys/mount.h>
 #include <pseudo/pseudo.h>
-#include <pseudo/idtrack.h>
+#include <handlers/idtrack.h>
 #include <handlers/virtid.h>
 
 static int fakeroot = 0;
@@ -135,9 +135,7 @@ int main(int argc, char *argv[]) {
         idtrack_set_base(id_states, base_id);
 
         virtid_callbacks_t v = virtid_callbacks(id_states);
-        pseudo_cb_adds(&cfg.cfg_parent.cbs,  &v.parent);
-        pseudo_cb_adds(&cfg.cfg_tracer.cbs,  &v.tracer);
-        pseudo_cb_adds(&cfg.cfg_syscall.cbs, &v.syscall);
+        virtid_attach_handlers(&cfg, id_states);
     }
 
     int rc = pseudo_run(&cfg);

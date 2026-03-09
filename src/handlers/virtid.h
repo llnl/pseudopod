@@ -4,7 +4,7 @@
 #ifndef LIBPSEUDO_VIRTID_H
 #define LIBPSEUDO_VIRTID_H
 #include <pseudo/pseudo.h>
-#include <pseudo/idtrack.h>
+#include <handlers/idtrack.h>
 
 #define ID_UNCHANGED 0xFFFFFFFF
 
@@ -23,4 +23,9 @@ virtid_callbacks_t virtid_callbacks(idtrack_t* id_states);
   Attach handlers to cfg. This is just a helper that calls virtid_callbacks and
   adds the callbacks to the config.*/
 void virtid_attach_handlers(pseudo_config_t* cfg, idtrack_t* id_states);
+
+// Previously declared internally at ./src/libpseudo/internal/
+id_state_t* get_id_state(idtrack_t* idstates, pid_t pid);
+id_state_t* unshare_id_state(idtrack_t* idstates, pid_t old_pid, pid_t new_pid);
+void erase_id_state(idtrack_t* idstates, pid_t pid);
 #endif

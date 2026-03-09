@@ -16,12 +16,13 @@ BINDIR   := bin
 
 # Library sources
 LIB_C_SRCS   := \
+	$(SRCDIR)/libpseudo/cbmanage.c \
 	$(SRCDIR)/libpseudo/pseudo.c \
 	$(SRCDIR)/libpseudo/seccomp.c \
 	$(SRCDIR)/libpseudo/log.c \
 	$(SRCDIR)/libpseudo/syscall.c \
 	$(SRCDIR)/libpseudo/emulation.c \
-	$(SRCDIR)/libpseudo/idtrack.c \
+	$(SRCDIR)/handlers/idtrack.c \
 	$(SRCDIR)/handlers/virtid.c
 
 # App sources
