@@ -16,6 +16,8 @@
 
 extern "C" {
 #include <pseudo/pseudo.h>
+#include <pseudo/idtrack.h>
+#include <handlers/virtid.h>
 #include "userns.h"
 }
 
@@ -437,11 +439,19 @@ public:
             return EXIT_FAILURE;
         }
 
+        idtrack_t* id_states = nullptr;
+
         pseudo_config_t cfg;
         pseudo_init_config(&cfg);
 
-        cfg.cfg_parent.base_id       = this->base_id;
-        cfg.cfg_parent.virt_enabled  = this->virt_enabled;
+        if (this->virt_enabled) {
+            id_states = idtrack_init();
+            idtrack_set_base(id_states, this->base_id);
+            virtid_callbacks_t v = virtid_callbacks(id_states);
+            pseudo_cb_adds(&cfg.cfg_parent.cbs,  &v.parent);
+            pseudo_cb_adds(&cfg.cfg_tracer.cbs,  &v.tracer);
+            pseudo_cb_adds(&cfg.cfg_syscall.cbs, &v.syscall);
+        }
         pseudo_cb_add(&cfg.cfg_parent.cbs,
                       (void*) this->parent_cb,
                       const_cast<setup_userns_config_t*>(parent_cbargs)
@@ -457,6 +467,12 @@ public:
                       );
 
         int child_rv = pseudo_run(&cfg);
+
+        if (id_states) {
+            idtrack_free(id_states);
+            free(id_states);
+        }
+
         return child_rv == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
     }
 };

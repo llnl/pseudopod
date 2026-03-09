@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: (Apache-2.0)
 
 #define _GNU_SOURCE
-#include "internal/id_t.h"
+#include "internal/idtrack.h"
 #include "internal/log.h"
 #include <stdlib.h>
 #include <string.h>
@@ -21,10 +21,15 @@ idtrack_t* idtrack_init() {
 void idtrack_free(idtrack_t* id_states) {
     for (int i = 0; i < IDST_L1_SZ; i++) {
         if (id_states->l1[i]) {
-            free(&id_states->l1[i]);
+            free(id_states->l1[i]);
             id_states->l1[i] = 0;
         }
     }
+}
+
+void idtrack_set_base(idtrack_t* id_states, id_state_t base_id) {
+    if (!id_states) return;
+    memcpy(&id_states->base_id, &base_id, sizeof(base_id));
 }
 
 _idst_l2* idst_get_l2d(idtrack_t* idstates, pid_t pid) {

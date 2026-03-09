@@ -4,7 +4,7 @@
 #ifndef LIBPSEUDO_EMULATION_H
 #define LIBPSEUDO_EMULATION_H
 #define _GNU_SOURCE
-#include "id_t.h"
+#include "idtrack.h"
 #include <pseudo/pseudo.h>
 
 int do_clone(const pseudo_config_child_t* cfg);

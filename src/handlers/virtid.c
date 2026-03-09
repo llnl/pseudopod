@@ -1,9 +1,10 @@
 // Copyright (c) Lawrence Livermore National Security, LLC and other Pseudopod Contributors. See top-level LICENSE and COPYRIGHT files for dates and other details.
 // SPDX-License-Identifier: (Apache-2.0)
 
-#include "libpseudo/internal/id_t.h"
+#include "libpseudo/internal/idtrack.h"
 #include "libpseudo/internal/log.h"
-#include "handlers/virtid.h"
+#include <handlers/virtid.h>
+#include <unistd.h>
 #include <pseudo/pseudo.h>
 #include <pseudo/syscall.h>
 #include <sys/types.h>
@@ -15,47 +16,9 @@
 #include <string.h>
 
 #define ID_UNCHANGED 0xFFFFFFFF
+
 #define ID_MAX 0xFFFFFFFF
 
-virtid_callbacks_t virtid_callbacks(idtrack_t* id_states)
-{
-    virtid_callbacks_t out;
-    memset(&out, 0, sizeof(out));
-
-    /* parent: seed base + unshare to child */
-    out.parent.cb     = (void*)virtid_parent_cb;
-    out.parent.cbargs = (void*)id_states;
-
-    /* tracer: fork/clone unshare + exit cleanup */
-    out.tracer.cb     = (void*)handle_trace_events;
-    out.tracer.cbargs = (void*)id_states;
-
-    /* syscall: uid/gid virtualization */
-    out.syscall.cb     = (void*)handle_uid_syscalls;
-    out.syscall.cbargs = (void*)id_states;
-
-    return out;
-}
-
-static int virtid_parent_cb(pid_t child, void* cb_args)
-{
-    idtrack_t* id_states = (idtrack_t*)cb_args;
-    pid_t parent = getpid();
-
-    id_state_t* base = get_id_state(id_states, parent);
-    if (!base) {
-        die("virtid: Failed to get base ID state.");
-    }
-
-    /* Seed from tracker-owned base_id */
-    memcpy(base, &id_states->base_id, sizeof(*base));
-
-    /* Give child its own copy of the parent’s state */
-    unshare_id_state(id_states, parent, child);
-    return 0;
-}
-
-// Private
 
 static inline void handle_setid(syscall_ctx_t* sc, id_state_t* idstate, int isgid) {
     sc->no = -1;
@@ -222,4 +185,51 @@ static int handle_trace_events(pid_t pid, int status, void* cb_args) {
         }
     }
     return 0;
+}
+
+// Public
+
+static int virtid_parent_cb(pid_t child, void* cb_args)
+{
+    idtrack_t* id_states = (idtrack_t*)cb_args;
+    pid_t parent = getpid();
+
+    id_state_t* base = get_id_state(id_states, parent);
+    if (!base) {
+        die("virtid: Failed to get base ID state.");
+    }
+
+    /* Seed from tracker-owned base_id */
+    memcpy(base, &id_states->base_id, sizeof(*base));
+
+    /* Give child its own copy of the parent’s state */
+    unshare_id_state(id_states, parent, child);
+    return 0;
+}
+
+virtid_callbacks_t virtid_callbacks(idtrack_t* id_states)
+{
+    virtid_callbacks_t out;
+    memset(&out, 0, sizeof(out));
+
+    /* parent: seed base + unshare to child */
+    out.parent.cb     = (void*)virtid_parent_cb;
+    out.parent.cbargs = (void*)id_states;
+
+    /* tracer: fork/clone unshare + exit cleanup */
+    out.tracer.cb     = (void*)handle_trace_events;
+    out.tracer.cbargs = (void*)id_states;
+
+    /* syscall: uid/gid virtualization */
+    out.syscall.cb     = (void*)handle_uid_syscalls;
+    out.syscall.cbargs = (void*)id_states;
+
+    return out;
+}
+
+void virtid_attach_handlers(pseudo_config_t* cfg, idtrack_t* id_states) {
+    virtid_callbacks_t v = virtid_callbacks(id_states);
+    pseudo_cb_adds(&cfg->cfg_parent.cbs,  &v.parent);
+    pseudo_cb_adds(&cfg->cfg_tracer.cbs,  &v.tracer);
+    pseudo_cb_adds(&cfg->cfg_syscall.cbs, &v.syscall);
 }

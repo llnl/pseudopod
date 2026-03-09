@@ -4,7 +4,7 @@ CC         := gcc
 AR         := ar
 CFLAGS     := -Wall -Wextra -O3 -fPIC
 CXXFLAGS   := $(CFLAGS) -std=c++17
-CPPFLAGS   := -I./include
+CPPFLAGS   := -I./include -I./src
 LDFLAGS    := -static-libgcc
 CXXLDFLAGS := -static-libstdc++ $(LDFLAGS)
 # LIBS       := -lcap
@@ -21,8 +21,8 @@ LIB_C_SRCS   := \
 	$(SRCDIR)/libpseudo/log.c \
 	$(SRCDIR)/libpseudo/syscall.c \
 	$(SRCDIR)/libpseudo/emulation.c \
-	$(SRCDIR)/libpseudo/virtid.c \
-	$(SRCDIR)/libpseudo/containers.c
+	$(SRCDIR)/libpseudo/idtrack.c \
+	$(SRCDIR)/handlers/virtid.c
 
 # App sources
 PSEUDO_SRCS := \
@@ -67,6 +67,9 @@ $(POD_BIN): $(POD_OBJS) $(STATIC_LIB)
 
 # Compile rules (objects produced next to sources)
 $(SRCDIR)/libpseudo/%.o: $(SRCDIR)/libpseudo/%.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+$(SRCDIR)/handlers/%.o: $(SRCDIR)/handlers/%.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 $(SRCDIR)/pseudo/%.o: $(SRCDIR)/pseudo/%.c

@@ -63,8 +63,6 @@ typedef struct {
 // parameters for parent
 typedef struct {
     pseudo_callbacks_t cbs;
-    int virt_enabled;
-    id_state_t base_id;
 } pseudo_config_parent_t;
 
 // top-level config

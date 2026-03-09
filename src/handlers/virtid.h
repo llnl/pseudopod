@@ -15,9 +15,12 @@ typedef struct {
 } virtid_callbacks_t;
 
 /*
- * Return callback bundle. cbargs for each callback is id_states.
- * Client attaches these to cfg.{parent,tracer,syscall}.cbs.
- */
+  Return callback bundle. cbargs for each callback is id_states.
+  Client attaches these to cfg.{parent,tracer,syscall}.cbs.*/
 virtid_callbacks_t virtid_callbacks(idtrack_t* id_states);
 
-#endif // LIBPSEUDO_VIRTSETID_H
+/*
+  Attach handlers to cfg. This is just a helper that calls virtid_callbacks and
+  adds the callbacks to the config.*/
+void virtid_attach_handlers(pseudo_config_t* cfg, idtrack_t* id_states);
+#endif
