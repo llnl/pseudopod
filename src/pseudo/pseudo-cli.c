@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
         targv = default_argv;
     }
 
-    idtrack_t* id_states = NULL;
+    idtrack_t* id_states = idtrack_init();
 
    // initialize starting IDs
     id_state_t base_id;
@@ -112,6 +112,8 @@ int main(int argc, char *argv[]) {
     if (default_gid == (gid_t)-1) { default_gid = getgid(); }
     base_id.id[0].real = base_id.id[0].effective = base_id.id[0].saved = default_uid;
     base_id.id[1].real = base_id.id[1].effective = base_id.id[1].saved = default_gid;
+
+    idtrack_set_base(id_states, base_id);
 
     const seccomp_fprog* filters[] = { get_filter_trace(), get_filter_fakechown(), NULL };
     if (fakeroot) {
@@ -131,10 +133,6 @@ int main(int argc, char *argv[]) {
     cfg.cfg_child.filters    = filters;
 
     if (!fakeroot) {
-        id_states = idtrack_init();
-        idtrack_set_base(id_states, base_id);
-
-        virtid_callbacks_t v = virtid_callbacks(id_states);
         virtid_attach_handlers(&cfg, id_states);
     }
 
