@@ -10,9 +10,9 @@ This repository contains these components:
 
 | Component   | Description |
 |-------------|-------------|
-| `pseudopod` | User-facing CLI tool that sets up namespaces, tmpfs mounts, and
-environment variables for Podman and other tools. |
+| `pseudopod` | User-facing CLI tool that sets up namespaces, tmpfs mounts, and environment variables for Podman and other tools. |
 | `libpseudo` | The core library that implements the syscall emulation logic. |
+| `handlers`  | Reusable handler modules built on `libpseudo`, including virtual UID/GID emulation and ID-state tracking. |
 | `pseudo`    | Demonstrates a minimal implementation of `libpseudo`. Emulates
 UID and GID related syscalls using `seccomp` and `ptrace`. |
 
@@ -249,6 +249,7 @@ pseudopod virtual --tracer off podman run --security-opt=seccomp=./trace.json ub
 
 ## Authors
 - Elena Green (green97@llnl.gov) - Primary author
+- Jordan Ogas (jogas@lanl.gov) - contributor
 
 
 ## License
