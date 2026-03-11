@@ -3,20 +3,20 @@
 This document summarizes the core data structures used by `libpseudo` and the
 ID tracking subsystem.
 
-## 1. `libpseudo` Configuration Model
+## `libpseudo` Configuration Model
 
-`pseudo_config_t` is the top-level runtime configuration object. It groups
-callback lists by execution phase:
+`pseudo_config_t` is the top-level runtime configuration object. Members are
+grouped callback lists:
 
 - `cfg_child` for tracee setup
 - `cfg_syscall` for syscall handling
 - `cfg_tracer` for ptrace and waitpid event handling
 - `cfg_parent` for parent-side setup after `clone`
 
-Each phase owns a `pseudo_callbacks_t`. This is a growable array of
-`pseudo_cb_t` entries. Each `pseudo_cb_t` stores a callback pointer and an
-opaque argument pointer. This is the mechanism `libpseudo` uses to let callers
-attach behavior at specific points in the tracing and emulation flow.
+Each owns a `pseudo_callbacks_t`, a growable array of `pseudo_cb_t` entries.
+Each `pseudo_cb_t` stores a callback pointer and an opaque argument pointer.
+This is the mechanism `libpseudo` uses to let callers attach behavior at
+specific points in the tracing and emulation flow.
 
 ```mermaid
 classDiagram
@@ -71,7 +71,7 @@ classDiagram
     pseudo_callbacks_t --> pseudo_cb_t
 ```
 
-## 2. `idtrack_t` Sparse State Table
+## `idtrack_t` Sparse State Table
 
 `idtrack_t` stores a sparse two-level table of `id_state_t` values, plus a
 default `base_id`.
@@ -83,17 +83,15 @@ default `base_id`.
 
 `idtrack_t` is a client-owned state object. The current implementation stores
 the sparse table and the default base state. Additional fields may be added in
-the future without changing the two-level lookup structure.
-
-The diagram below marks that extension point explicitly, but does not name or
-imply any unimplemented field.
+the future without changing the two-level lookup structure (the diagram below
+expresses this point explicitly).
 
 ```mermaid
 classDiagram
     class idtrack_t {
         +_idst_l2* l1[IDST_L1_SZ]
         +id_state_t base_id
-        .. future extension point ..
+        // .. future extension point ..
     }
 
     class _idst_l2 {
