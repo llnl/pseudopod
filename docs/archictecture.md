@@ -5,8 +5,8 @@ ID tracking subsystem.
 
 ## `libpseudo` Configuration Model
 
-`pseudo_config_t` is the top-level runtime configuration object. Members are
-grouped callback lists:
+`pseudo_config_t` is the top-level runtime configuration object. It groups
+callback lists by execution phase.
 
 - `cfg_child` for tracee setup
 - `cfg_syscall` for syscall handling
