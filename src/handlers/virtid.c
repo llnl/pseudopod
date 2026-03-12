@@ -1,8 +1,10 @@
 // Copyright (c) Lawrence Livermore National Security, LLC and other Pseudopod Contributors. See top-level LICENSE and COPYRIGHT files for dates and other details.
 // SPDX-License-Identifier: (Apache-2.0)
 
-#include "internal/containers.h"
-#include "internal/log.h"
+#include <handlers/idtrack.h>
+#include "libpseudo/internal/log.h"
+#include <handlers/virtid.h>
+#include <unistd.h>
 #include <pseudo/pseudo.h>
 #include <pseudo/syscall.h>
 #include <sys/types.h>
@@ -14,7 +16,48 @@
 #include <string.h>
 
 #define ID_UNCHANGED 0xFFFFFFFF
+
 #define ID_MAX 0xFFFFFFFF
+
+_idst_l2* idst_get_l2d(idtrack_t* idstates, pid_t pid) {
+    int l1i = pid >> IDST_L1_BITS;
+    _idst_l2 *l2d = idstates->l1[l1i];
+    if (!l2d) {
+        l2d = (_idst_l2*) malloc(sizeof(_idst_l2));
+        if (!l2d) {
+            die("idst_get_l2d: failed to allocate memory: ");
+        }
+        memset(l2d, 0, sizeof(_idst_l2));
+        idstates->l1[l1i] = l2d;
+    }
+    return idstates->l1[l1i];
+}
+
+_idst_leaf* idst_get_leaf(idtrack_t* idstates, pid_t pid) {
+    int l2i = pid & L2_MASK;
+    _idst_l2 *l1d = idst_get_l2d(idstates, pid);
+    return &l1d->l2[l2i];
+}
+
+id_state_t* get_id_state(idtrack_t* idstates, pid_t pid) {
+    _idst_leaf *l2e = idst_get_leaf(idstates, pid);
+    return &l2e->v;
+}
+
+id_state_t* unshare_id_state(idtrack_t* idstates, pid_t old_pid, pid_t new_pid) {
+    id_state_t* r = get_id_state(idstates, old_pid);
+    id_state_t* l = get_id_state(idstates, new_pid);
+    memcpy(l, r, sizeof(id_state_t));
+    return l;
+}
+
+void erase_id_state(idtrack_t* idstates, pid_t pid) {
+    _idst_leaf *l2e = idst_get_leaf(idstates, pid);
+    l2e->valid = 0;
+    memset(&l2e->v, 0, sizeof(id_state_t));
+}
+
+// Callback manager
 
 static inline void handle_setid(syscall_ctx_t* sc, id_state_t* idstate, int isgid) {
     sc->no = -1;
@@ -183,14 +226,49 @@ static int handle_trace_events(pid_t pid, int status, void* cb_args) {
     return 0;
 }
 
-void virtid_attach_handlers(pseudo_config_t* cfg, idtrack_t* id_states) {
-    DEBUG(stderr, "virtid_attach_handlers: attach emulation\n");
-    id_state_t* base_id = get_id_state(id_states, getpid());
-    if (!base_id) { die("Failed to get ID state tracker."); }
-    memcpy(base_id, &cfg->cfg_parent.base_id, sizeof(id_state_t));
-    DEBUG(stderr, "base_id: %d %d %d\n", base_id->id[0].real, base_id->id[0].effective, base_id->id[0].saved);
+// Public
 
-    // attach id tracker
-    pseudo_cb_add(&cfg->cfg_syscall.cbs, &handle_uid_syscalls, id_states);
-    pseudo_cb_add(&cfg->cfg_tracer.cbs, &handle_trace_events, id_states);
+static int virtid_parent_cb(pid_t child, void* cb_args)
+{
+    idtrack_t* id_states = (idtrack_t*)cb_args;
+    pid_t parent = getpid();
+
+    id_state_t* base = get_id_state(id_states, parent);
+    if (!base) {
+        die("virtid: Failed to get base ID state.");
+    }
+
+    /* Seed from tracker-owned base_id */
+    memcpy(base, &id_states->base_id, sizeof(*base));
+
+    /* Give child its own copy of the parent’s state */
+    unshare_id_state(id_states, parent, child);
+    return 0;
+}
+
+virtid_callbacks_t virtid_callbacks(idtrack_t* id_states)
+{
+    virtid_callbacks_t out;
+    memset(&out, 0, sizeof(out));
+
+    /* parent: seed base + unshare to child */
+    out.parent.cb     = (void*)virtid_parent_cb;
+    out.parent.cbargs = (void*)id_states;
+
+    /* tracer: fork/clone unshare + exit cleanup */
+    out.tracer.cb     = (void*)handle_trace_events;
+    out.tracer.cbargs = (void*)id_states;
+
+    /* syscall: uid/gid virtualization */
+    out.syscall.cb     = (void*)handle_uid_syscalls;
+    out.syscall.cbargs = (void*)id_states;
+
+    return out;
+}
+
+void virtid_attach_handlers(pseudo_config_t* cfg, idtrack_t* id_states) {
+    virtid_callbacks_t v = virtid_callbacks(id_states);
+    pseudo_cb_adds(&cfg->cfg_parent.cbs,  &v.parent);
+    pseudo_cb_adds(&cfg->cfg_tracer.cbs,  &v.tracer);
+    pseudo_cb_adds(&cfg->cfg_syscall.cbs, &v.syscall);
 }

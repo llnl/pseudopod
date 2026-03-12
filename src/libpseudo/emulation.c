@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: (Apache-2.0)
 
 #define _GNU_SOURCE
-#include "internal/containers.h"
+#include <handlers/idtrack.h>
 #include "internal/log.h"
 #include <pseudo/syscall.h>
 #include <sys/ptrace.h>
