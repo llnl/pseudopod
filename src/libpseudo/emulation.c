@@ -175,6 +175,7 @@ int handle_events(pid_t child, pseudo_config_t* cfg) {
             if (errno == ECHILD) { break; }
             die("waitpid loop");
         }
+        log_trace("handle_events: caught pid %d", pid);
 
         log_trace("handle_events: executing callbacks");
         for (int i = 0; i < cfg->cfg_tracer.cbs.len; i++) {
@@ -188,16 +189,20 @@ int handle_events(pid_t child, pseudo_config_t* cfg) {
         log_trace("handle_events: callbacks succeded");
 
         if (WIFEXITED(status)) {
+            log_trace("handle_events: pid %d: exited", pid);
             continue;
         }
         if (WIFSIGNALED(status)) {
+            log_trace("handle_events: pid %d: signaled", pid);
             continue;
         }
         if (WIFSTOPPED(status)) {
             int sig = WSTOPSIG(status);
+            log_trace("handle_events: pid %d: stopped: signal=%d", pid, sig);
             unsigned event = 0;
             if (sig == SIGTRAP) {
                 event = (unsigned)((status >> 16) & 0xffff);
+                log_trace("handle_events: pid %d: SIGTRAP event=%d", pid, sig, event);
                 if (event == PTRACE_EVENT_SECCOMP) {
                     log_debug("handle_events: caught syscall");
                     if (handle_syscall(&cfg->cfg_syscall, pid) == -1) {

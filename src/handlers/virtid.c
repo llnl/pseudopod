@@ -203,6 +203,7 @@ int handle_uid_syscalls(pid_t pid, syscall_ctx_t* sc, void* v_args) {
 static int handle_trace_events(pid_t pid, int status, void* cb_args) {
     idtrack_t* id_states = (idtrack_t*)cb_args;
     if (WIFEXITED(status)) {
+        log_trace("virtid_trace: exited: %d", pid);
         erase_id_state(id_states, pid);
     }
     else if (WIFSTOPPED(status)) {
@@ -213,6 +214,7 @@ static int handle_trace_events(pid_t pid, int status, void* cb_args) {
             if (event == PTRACE_EVENT_FORK ||
                 event == PTRACE_EVENT_VFORK ||
                 event == PTRACE_EVENT_CLONE) {
+                log_trace("virtid_trace: handle EVENT_CLONE");
                 unsigned long newpid = 0;
                 if (ptrace(PTRACE_GETEVENTMSG, pid, 0, &newpid) == -1) {
                     log_perror(LOG_ERROR, "PTRACE_GETEVENTMSG");

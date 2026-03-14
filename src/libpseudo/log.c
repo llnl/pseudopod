@@ -9,10 +9,6 @@
 #include <stdarg.h>
 #include <string.h>
 #include <time.h>
-#include <threads.h>
-
-// static mtx_t _mtx;
-// static int _log_init = 0;
 
 static int log_level = LOG_WARN;
 
@@ -59,29 +55,30 @@ void pseudo_log_set_level(int level) {
     log_level = log_clamp(level);
 }
 
-void pseudo_log(int level, const char* fmt, ...) {
+static void vlog(int level, const char* fmt, va_list ap) {
     if (level <= log_level) {
         char timestamp[80];
         _get_timestamp(timestamp, 80);
 
-        // if (! _log_init) { mtx_init(&_mtx, mtx_plain); }
-        // mtx_lock(&_mtx);
-        va_list ap;
-        va_start(ap, fmt);
-        fprintf(stderr, "%s %s: ", timestamp, _level_name(level));
-        vfprintf(stderr, fmt, ap);
-        fprintf(stderr, "\n");
-        va_end(ap);
-        // mtx_unlock(&_mtx);
+        char logstr[1024];
+        vsnprintf(logstr, 1024, fmt, ap);
+        fprintf(stderr, "%s %s: %s\n", timestamp, _level_name(level), logstr);
     }
 }
 
-void log_fatal(const char* fmt, ...) { va_list ap; va_start(ap, fmt); pseudo_log(LOG_FATAL, fmt, ap); va_end(ap); }
-void log_error(const char* fmt, ...) { va_list ap; va_start(ap, fmt); pseudo_log(LOG_ERROR, fmt, ap); va_end(ap); }
-void log_warn (const char* fmt, ...) { va_list ap; va_start(ap, fmt); pseudo_log(LOG_WARN,  fmt, ap); va_end(ap); }
-void log_info (const char* fmt, ...) { va_list ap; va_start(ap, fmt); pseudo_log(LOG_INFO,  fmt, ap); va_end(ap); }
-void log_debug(const char* fmt, ...) { va_list ap; va_start(ap, fmt); pseudo_log(LOG_DEBUG, fmt, ap); va_end(ap); }
-void log_trace(const char* fmt, ...) { va_list ap; va_start(ap, fmt); pseudo_log(LOG_TRACE, fmt, ap); va_end(ap); }
+void pseudo_log(int level, const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vlog(level, fmt, ap);
+    va_end(ap);
+}
+
+void log_fatal(const char* fmt, ...) { va_list ap; va_start(ap, fmt); vlog(LOG_FATAL, fmt, ap); va_end(ap); }
+void log_error(const char* fmt, ...) { va_list ap; va_start(ap, fmt); vlog(LOG_ERROR, fmt, ap); va_end(ap); }
+void log_warn (const char* fmt, ...) { va_list ap; va_start(ap, fmt); vlog(LOG_WARN,  fmt, ap); va_end(ap); }
+void log_info (const char* fmt, ...) { va_list ap; va_start(ap, fmt); vlog(LOG_INFO,  fmt, ap); va_end(ap); }
+void log_debug(const char* fmt, ...) { va_list ap; va_start(ap, fmt); vlog(LOG_DEBUG, fmt, ap); va_end(ap); }
+void log_trace(const char* fmt, ...) { va_list ap; va_start(ap, fmt); vlog(LOG_TRACE, fmt, ap); va_end(ap); }
 
 void log_perror(int level, const char* msg) {
     if (!msg) { msg = ""; }
