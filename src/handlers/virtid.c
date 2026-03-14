@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: (Apache-2.0)
 
 #include <handlers/idtrack.h>
-#include "libpseudo/internal/log.h"
+#include <pseudo/log.h>
 #include <handlers/virtid.h>
 #include <unistd.h>
 #include <pseudo/pseudo.h>
@@ -134,51 +134,51 @@ int handle_uid_syscalls(pid_t pid, syscall_ctx_t* sc, void* v_args) {
     id_state_t *id_state = get_id_state(id_states, pid);
     switch (sc->no) {
       case __NR_setuid:
-        DEBUG(stderr, "setuid: %lu\n", (unsigned long)sc->args[0]);
+        log_trace("setuid: %lu", (unsigned long)sc->args[0]);
         handle_setid(sc, id_state, 0);
         break;
       case __NR_setreuid:
-        DEBUG(stderr, "setreuid: %lu %lu\n", (unsigned long)sc->args[0], (unsigned long)sc->args[1]);
+        log_trace("setreuid: %lu %lu", (unsigned long)sc->args[0], (unsigned long)sc->args[1]);
         handle_setreid(sc, &id_state->id[0]);
         break;
       case __NR_setresuid:
-        DEBUG(stderr, "setresuid: %lu %lu %lu\n", (unsigned long)sc->args[0], (unsigned long)sc->args[1], (unsigned long)sc->args[2]);
+        log_trace("setresuid: %lu %lu %lu", (unsigned long)sc->args[0], (unsigned long)sc->args[1], (unsigned long)sc->args[2]);
         handle_setresid(sc, &id_state->id[0]);
         break;
       case __NR_setgid:
-        DEBUG(stderr, "setgid: %lu\n", (unsigned long)sc->args[0]);
+        log_trace("setgid: %lu", (unsigned long)sc->args[0]);
         handle_setid(sc, id_state, 1);
         break;
       case __NR_setregid:
-        DEBUG(stderr, "setregid: %lu %lu\n", (unsigned long)sc->args[0], (unsigned long)sc->args[1]);
+        log_trace("setregid: %lu %lu", (unsigned long)sc->args[0], (unsigned long)sc->args[1]);
         handle_setreid(sc, &id_state->id[1]);
         break;
       case __NR_setresgid:
-        DEBUG(stderr, "setresgid: %lu %lu %lu\n", (unsigned long)sc->args[0], (unsigned long)sc->args[1], (unsigned long)sc->args[2]);
+        log_trace("setresgid: %lu %lu %lu", (unsigned long)sc->args[0], (unsigned long)sc->args[1], (unsigned long)sc->args[2]);
         handle_setresid(sc, &id_state->id[1]);
         break;
       case __NR_getuid:
-        DEBUG(stderr, "getuid: %lu\n", (unsigned long)id_state->id[0].real);
+        log_trace("getuid: %lu", (unsigned long)id_state->id[0].real);
         sc->ret = id_state->id[0].real;
         sc->no = -1;
         break;
       case __NR_geteuid:
-        DEBUG(stderr, "geteuid: %lu\n", (unsigned long)id_state->id[0].effective);
+        log_trace("geteuid: %lu", (unsigned long)id_state->id[0].effective);
         sc->ret = id_state->id[0].effective;
         sc->no = -1;
         break;
       case __NR_getgid:
-        DEBUG(stderr, "getgid: %lu\n", (unsigned long)id_state->id[1].real);
+        log_trace("getgid: %lu", (unsigned long)id_state->id[1].real);
         sc->ret = id_state->id[1].real;
         sc->no = -1;
         break;
       case __NR_getegid:
-        DEBUG(stderr, "getegid: %lu\n", (unsigned long)id_state->id[1].effective);
+        log_trace("getegid: %lu", (unsigned long)id_state->id[1].effective);
         sc->ret = id_state->id[1].effective;
         sc->no = -1;
         break;
       case __NR_getresuid: {
-        DEBUG(stderr, "getresuid: %lu %lu %lu\n",
+        log_trace("getresuid: %lu %lu %lu",
               (unsigned long)id_state->id[0].real,
               (unsigned long)id_state->id[0].effective,
               (unsigned long)id_state->id[0].saved);
@@ -186,7 +186,7 @@ int handle_uid_syscalls(pid_t pid, syscall_ctx_t* sc, void* v_args) {
         break;
       }
       case __NR_getresgid: {
-        DEBUG(stderr, "getresgid: %lu %lu %lu\n",
+        log_trace("getresgid: %lu %lu %lu",
               (unsigned long)id_state->id[1].real,
               (unsigned long)id_state->id[1].effective,
               (unsigned long)id_state->id[1].saved);
@@ -215,9 +215,9 @@ static int handle_trace_events(pid_t pid, int status, void* cb_args) {
                 event == PTRACE_EVENT_CLONE) {
                 unsigned long newpid = 0;
                 if (ptrace(PTRACE_GETEVENTMSG, pid, 0, &newpid) == -1) {
-                    perror("PTRACE_GETEVENTMSG");
+                    log_perror(LOG_ERROR, "PTRACE_GETEVENTMSG");
                 } else {
-                    DEBUG(stderr, "virtid_trace: unshare id state\n");
+                    log_debug("virtid_trace: unshare id state");
                     unshare_id_state(id_states, pid, newpid);
                 }
             }

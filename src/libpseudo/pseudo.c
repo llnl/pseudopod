@@ -3,7 +3,7 @@
 
 #define _GNU_SOURCE
 #include "internal/emulation.h"
-#include "internal/log.h"
+#include <pseudo/log.h>
 #include <pseudo/pseudo.h>
 #include <string.h>
 #include <sys/types.h>
@@ -26,7 +26,7 @@ void pseudo_free_config(pseudo_config_t* cfg) {
 }
 
 int pseudo_run(pseudo_config_t* pseudo_cfg) {
-    DEBUG(stderr, "pseudo_run: start\n");
+    log_debug("pseudo_run: start");
 
     pseudo_config_parent_t* cfg = &pseudo_cfg->cfg_parent;
 
@@ -35,24 +35,26 @@ int pseudo_run(pseudo_config_t* pseudo_cfg) {
         die("clone");
     }
 
-    DEBUG(stderr, "pseudo_run: clone succeeded\n");
+    log_debug("pseudo_run: clone succeeded");
 
     // Execute parent callbacks (user-attached modules, e.g., virtid)
+    log_trace("pseudo_run: executing parent callbacks");
     for (int i = 0; i < cfg->cbs.len; i++) {
-        DEBUG(stderr, "pseudo_run: executing parent callback %d\n", i);
+        log_trace("pseudo_run: executing parent callback %d", i);
         void* cb_args = cfg->cbs.callbacks[i].cbargs;
         parent_cb_func_t* cb = (parent_cb_func_t*) cfg->cbs.callbacks[i].cb;
         if (cb(child, cb_args)) {
             die("pseudo_run: post-clone callback returned nonzero");
         }
     }
+    log_trace("pseudo_run: parent callbacks succeded");
 
-    DEBUG(stderr, "pseudo_run: entering event loop\n");
+    log_debug("pseudo_run: entering event loop");
 
     // Always run the tracing/event loop. If no handlers are attached,
     // it acts as a passthrough runner.
     (void)handle_events(child, pseudo_cfg);
 
-    DEBUG(stderr, "pseudo_run: done\n");
+    log_debug("pseudo_run: done");
     return 0;
 }
