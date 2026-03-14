@@ -3,7 +3,7 @@
 
 #define _GNU_SOURCE
 #include <pseudo/pseudo.h>
-#include "internal/log.h"
+#include <pseudo/log.h>
 #include <stdlib.h>
 #include <string.h>
 

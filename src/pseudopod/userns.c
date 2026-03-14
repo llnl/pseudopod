@@ -13,32 +13,17 @@
 #include <pwd.h>
 #include <grp.h>
 
-#ifdef USE_LIBCAP
-#include <sys/capability.h>
-#endif
-
-#define GETPW_MAXBUF 32768
+#include <pseudo/log.h>
 
 #ifndef DEBUG_ENABLED
 #define DEBUG_ENABLED 0
 #endif
 
-#define DEBUG(stream, fmt, ...) do { \
-    if (DEBUG_ENABLED) fprintf(stream, "DEBUG: " fmt, ##__VA_ARGS__); \
-} while(0)
+#ifdef USE_LIBCAP
+#include <sys/capability.h>
+#endif
 
-#define WARN(fmt, ...) do { \
-    fprintf(stderr, "WARN: " fmt, ##__VA_ARGS__); \
-} while(0)
-
-#define ERR(fmt, ...) do { \
-    fprintf(stderr, "ERR: " fmt, ##__VA_ARGS__); \
-} while(0)
-
-void die(const char *msg) {
-    perror(msg);
-    exit(EXIT_FAILURE);
-}
+#define GETPW_MAXBUF 32768
 
 // privileged mode functions
 
@@ -117,7 +102,7 @@ int get_subid_range(const char *filename, uid_t baseid, const char* name, subid_
     fclose(f);
 
     if (!found) {
-        DEBUG(stderr, "%s (id %s) not found in %s\n", name, baseid_str, filename);
+        log_warn("%s (id %s) not found in %s", name, baseid_str, filename);
         return -1;
     }
     return 0;
@@ -125,6 +110,7 @@ int get_subid_range(const char *filename, uid_t baseid, const char* name, subid_
 
 int exec_map_helper(char** argv) {
     if (DEBUG_ENABLED) {
+        // print full commandline
         fprintf(stderr, "attempt to call %s ", argv[0]);
         char* arg = argv[1];
         for (int i = 1; arg; i++) {
@@ -136,24 +122,24 @@ int exec_map_helper(char** argv) {
 
     pid_t pid = fork();
     if (pid < 0) {
-        perror("fork");
+        log_perror(LOG_ERROR, "fork");
         return -1;
     } else if (pid == 0) {
         // child
         execvp(argv[0], argv);
-        perror("execvp");
+        log_perror(LOG_ERROR, "execvp");
         _exit(127);
     } else {
         // parent
         int status;
         if (waitpid(pid, &status, 0) == -1) {
-            perror("waitpid");
+            log_perror(LOG_ERROR, "waitpid");
             return -1;
         }
         if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
             return 0;
         } else {
-            fprintf(stderr, "%s failed with status %d\n", argv[0], status);
+            log_error("%s failed with status %d", argv[0], status);
             return -1;
         }
     }
@@ -218,9 +204,9 @@ int setup_child_idmap_unpriv(const char* idmap_file, const ns_config_t* nsconfig
     char strbuf[64];
 
     if (nsconfig->num_entries > 1) {
-        DEBUG(stderr, "Ignoring additional ID maps in unprivileged mode\n");
+        log_info("Ignoring additional ID maps in unprivileged mode");
     } else if (nsconfig->num_entries == 0) {
-        WARN("No ID maps specified\n");
+        log_warn("No ID maps specified");
     }
 
     ns_entry_t* nsentry = &nsconfig->entries[0];
@@ -241,19 +227,19 @@ int setup_child_userns_unpriv(const pid_t child, const ns_config_t* uid_config, 
 
     snprintf(map_fn, 32, SETGROUPS_FILE, pidbuf);
     if (write_id_map(map_fn, "deny", 4)) {
-        WARN("setgroups failed\n");
+        log_error("setgroups failed");
         return -1;
     }
 
     snprintf(map_fn, 32, UIDMAP_FILE, pidbuf);
     if (setup_child_idmap_unpriv(map_fn, uid_config)) {
-        WARN("Write UID map failed\n");
+        log_error("Write UID map failed");
         return -1;
     }
 
     snprintf(map_fn, 32, GIDMAP_FILE, pidbuf);
     if (setup_child_idmap_unpriv(map_fn, gid_config)) {
-        WARN("Write GID map failed\n");
+        log_error("Write GID map failed");
         return -1;
     }
     return 0;
@@ -264,7 +250,7 @@ int setup_child_userns_unpriv(const pid_t child, const ns_config_t* uid_config, 
 int get_subid_config(subid_range_t *uid_range, subid_range_t *gid_range) {
     char* alloc = (char*) malloc(640);
     if (!alloc) {
-        perror("malloc");
+        log_perror(LOG_FATAL, "malloc");
         die("get_subid_config: malloc failed");
     }
     char* newuidmap = &alloc[0], *newgidmap = &alloc[256];
@@ -279,7 +265,8 @@ int get_subid_config(subid_range_t *uid_range, subid_range_t *gid_range) {
     char* buf = (char*) malloc(GETPW_MAXBUF);
     getpwuid_r(uid, &pwd, buf, GETPW_MAXBUF, &pw_result);
     if (!pw_result) {
-        DEBUG(stderr, "error finding uid %d in passwd\n", uid);
+        log_perror(LOG_ERROR, "getpwuid_r");
+        log_warn("error finding uid %d in passwd", uid);
         free(buf);
         goto fail;
     }
@@ -287,8 +274,8 @@ int get_subid_config(subid_range_t *uid_range, subid_range_t *gid_range) {
 
     getgrgid_r(gid, &grp, buf, GETPW_MAXBUF, &gr_result);
     if (!gr_result) {
-        perror("getgrgid_r");
-        DEBUG(stderr, "error finding gid %d in group\n", gid);
+        log_perror(LOG_ERROR, "getgrgid_r");
+        log_warn("error finding gid %d in group", gid);
         free(buf);
         goto fail;
     }
@@ -296,33 +283,33 @@ int get_subid_config(subid_range_t *uid_range, subid_range_t *gid_range) {
     free(buf);
 
     if (resolve_path("newuidmap", 256, newuidmap)) {
-        DEBUG(stderr, "newuidmap binary not found\n");
+        log_warn("newuidmap binary not found");
         goto fail;
     }
     if (resolve_path("newgidmap", 256, newgidmap)) {
-        DEBUG(stderr, "newgidmap binary not found\n");
+        log_warn("newgidmap binary not found");
         goto fail;
     }
 
 #ifdef USE_LIBCAP
     if (!check_cap(newuidmap, CAP_SETUID)) {
-        DEBUG(stderr, "%s not cap_setuid\n", newuidmap);
+        log_warn("%s not cap_setuid", newuidmap);
         goto fail;
     }
 
     if (!check_cap(newgidmap, CAP_SETGID)) {
-        DEBUG(stderr, "%s not cap_setgid\n", newgidmap);
+        log_warn("%s not cap_setgid", newgidmap);
         goto fail;
     }
 #endif
 
     if (get_subid_range("/etc/subuid", uid, uname, uid_range)) {
-        DEBUG(stderr, "couldn't look up subuid range for %s\n", uname);
+        log_warn("couldn't look up subuid range for %s", uname);
         goto fail;
     }
 
     if (get_subid_range("/etc/subgid", gid, gname, gid_range)) {
-        DEBUG(stderr, "couldn't look up subgid range for %s\n", gname);
+        log_warn("couldn't look up subgid range for %s", gname);
         goto fail;
     }
 
@@ -338,12 +325,12 @@ int cb_setup_userns_priv(pid_t child, void* v_cfg) {
     setup_userns_config_t* cfg = (setup_userns_config_t*) v_cfg;
 
     if (run_map_helper("newuidmap", child, &cfg->uid_config)) {
-        WARN("newuidmap call failed\n");
+        log_warn("newuidmap call failed");
         goto fallback;
     }
 
     if (run_map_helper("newgidmap", child, &cfg->gid_config)) {
-        WARN("newgidmap call failed\n");
+        log_warn("newgidmap call failed");
         goto fallback;
     }
 
@@ -356,7 +343,7 @@ fallback:
 int cb_setup_userns_unpriv(pid_t child, void* v_cfg) {
     setup_userns_config_t* cfg = (setup_userns_config_t*) v_cfg;
     if (setup_child_userns_unpriv(child, &cfg->uid_config, &cfg->gid_config)) {
-        ERR("Unprivileged namespace setup failed\n");
+        log_fatal("Unprivileged namespace setup failed\n");
         return -1;
     }
     return 0;

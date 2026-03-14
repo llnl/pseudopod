@@ -1,7 +1,7 @@
 // Copyright (c) Lawrence Livermore National Security, LLC and other Pseudopod Contributors. See top-level LICENSE and COPYRIGHT files for dates and other details.
 // SPDX-License-Identifier: (Apache-2.0)
 
-#include "libpseudo/internal/log.h"
+#include <pseudo/log.h>
 #include <handlers/idtrack.h>
 #include <handlers/virtid.h>
 #include <unistd.h>

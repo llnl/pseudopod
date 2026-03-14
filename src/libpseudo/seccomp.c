@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <stddef.h>
 #include "pseudo/seccomp.h"
-#include "internal/log.h"
+#include <pseudo/log.h>
 
 static struct sock_filter seccomp_filter_trace[] = {
     // Load arch
