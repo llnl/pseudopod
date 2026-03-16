@@ -65,6 +65,7 @@ int syscall_get_regs(pid_t pid, syscall_ctx_t *out) {
     out->args[5]  = regs.r9;
     out->no       = regs.orig_rax;
     out->ret      = regs.rax; // <-- Return value is in rax
+    out->abi      = SYSCALL_ABI_X86_64;
     return 0;
 }
 
@@ -95,8 +96,9 @@ int syscall_get_regs(pid_t pid, syscall_ctx_t *out) {
     struct iovec iov = { .iov_base = &regs, .iov_len = sizeof(regs) };
     if (ptrace(PTRACE_GETREGSET, pid, (void*)NT_PRSTATUS, &iov) == -1) return -1;
     for (int i = 0; i < 6; ++i) out->args[i] = regs.regs[i]; // x0-x5
-    out->no = regs.regs[8];         // x8 is syscall number
-    out->ret = regs.regs[0];        // x0 is return value
+    out->no  = regs.regs[8];         // x8 is syscall number
+    out->ret = regs.regs[0];         // x0 is return value
+    out->abi = SYSCALL_ABI_AARCH64;
     return 0;
 }
 
@@ -130,8 +132,9 @@ int syscall_get_regs(pid_t pid, syscall_ctx_t *out) {
     out->args[3] = regs.gpr[6];
     out->args[4] = regs.gpr[7];
     out->args[5] = regs.gpr[8];
-    out->no = regs.gpr[0];         // orig_gpr3
-    out->ret = regs.gpr[3];        // r3 is return value
+    out->no      = regs.gpr[0];         // orig_gpr3
+    out->ret     = regs.gpr[3];         // r3 is return value
+    out->abi     = SYSCALL_ABI_PPC64LE;
     return 0;
 }
 

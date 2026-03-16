@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <pseudo/pseudo.h>
 #include <pseudo/syscall.h>
+#include <libpseudo/internal/nr_map.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/ptrace.h>
@@ -18,6 +19,16 @@
 #define ID_UNCHANGED 0xFFFFFFFF
 
 #define ID_MAX 0xFFFFFFFF
+
+static pseudo_syscall_id_t virtid_decode_syscall(const syscall_ctx_t* sc) {
+    const pseudo_syscall_info_t* info = get_syscall_by_nr(sc->abi, sc->no);
+
+    if (!info || !(info->flags & PSEUDO_SCF_VIRTID)) {
+        return PSEUDO_SC_NONE;
+    }
+
+    return info->id;
+}
 
 _idst_l2* idst_get_l2d(idtrack_t* idstates, pid_t pid) {
     int l1i = pid >> IDST_L1_BITS;
@@ -132,52 +143,58 @@ static inline void handle_getresid(pid_t pid, syscall_ctx_t* sc, ids_t* id) {
 int handle_uid_syscalls(pid_t pid, syscall_ctx_t* sc, void* v_args) {
     idtrack_t* id_states = (idtrack_t*) v_args;
     id_state_t *id_state = get_id_state(id_states, pid);
-    switch (sc->no) {
-      case __NR_setuid:
+    switch (virtid_decode_syscall(sc)) {
+      case PSEUDO_SC_SETUID:
         log_trace("setuid: %lu", (unsigned long)sc->args[0]);
         handle_setid(sc, id_state, 0);
         break;
-      case __NR_setreuid:
-        log_trace("setreuid: %lu %lu", (unsigned long)sc->args[0], (unsigned long)sc->args[1]);
+      case PSEUDO_SC_SETREUID:
+        log_trace("setreuid: %lu %lu", (unsigned long)sc->args[0],
+                                       (unsigned long)sc->args[1]);
         handle_setreid(sc, &id_state->id[0]);
         break;
-      case __NR_setresuid:
-        log_trace("setresuid: %lu %lu %lu", (unsigned long)sc->args[0], (unsigned long)sc->args[1], (unsigned long)sc->args[2]);
+      case PSEUDO_SC_SETRESUID:
+        log_trace("setresuid: %lu %lu %lu", (unsigned long)sc->args[0],
+                                            (unsigned long)sc->args[1],
+                                            (unsigned long)sc->args[2]);
         handle_setresid(sc, &id_state->id[0]);
         break;
-      case __NR_setgid:
+      case PSEUDO_SC_SETGID:
         log_trace("setgid: %lu", (unsigned long)sc->args[0]);
         handle_setid(sc, id_state, 1);
         break;
-      case __NR_setregid:
-        log_trace("setregid: %lu %lu", (unsigned long)sc->args[0], (unsigned long)sc->args[1]);
+      case PSEUDO_SC_SETREGID:
+        log_trace("setregid: %lu %lu", (unsigned long)sc->args[0],
+                                       (unsigned long)sc->args[1]);
         handle_setreid(sc, &id_state->id[1]);
         break;
-      case __NR_setresgid:
-        log_trace("setresgid: %lu %lu %lu", (unsigned long)sc->args[0], (unsigned long)sc->args[1], (unsigned long)sc->args[2]);
+      case PSEUDO_SC_SETRESGID:
+        log_trace("setresgid: %lu %lu %lu", (unsigned long)sc->args[0],
+                                            (unsigned long)sc->args[1],
+                                            (unsigned long)sc->args[2]);
         handle_setresid(sc, &id_state->id[1]);
         break;
-      case __NR_getuid:
+      case PSEUDO_SC_GETUID:
         log_trace("getuid: %lu", (unsigned long)id_state->id[0].real);
         sc->ret = id_state->id[0].real;
         sc->no = -1;
         break;
-      case __NR_geteuid:
+      case PSEUDO_SC_GETEUID:
         log_trace("geteuid: %lu", (unsigned long)id_state->id[0].effective);
         sc->ret = id_state->id[0].effective;
         sc->no = -1;
         break;
-      case __NR_getgid:
+      case PSEUDO_SC_GETGID:
         log_trace("getgid: %lu", (unsigned long)id_state->id[1].real);
         sc->ret = id_state->id[1].real;
         sc->no = -1;
         break;
-      case __NR_getegid:
+      case PSEUDO_SC_GETEGID:
         log_trace("getegid: %lu", (unsigned long)id_state->id[1].effective);
         sc->ret = id_state->id[1].effective;
         sc->no = -1;
         break;
-      case __NR_getresuid: {
+      case PSEUDO_SC_GETRESUID: {
         log_trace("getresuid: %lu %lu %lu",
               (unsigned long)id_state->id[0].real,
               (unsigned long)id_state->id[0].effective,
@@ -185,7 +202,7 @@ int handle_uid_syscalls(pid_t pid, syscall_ctx_t* sc, void* v_args) {
         handle_getresid(pid, sc, &id_state->id[0]);
         break;
       }
-      case __NR_getresgid: {
+      case PSEUDO_SC_GETRESGID: {
         log_trace("getresgid: %lu %lu %lu",
               (unsigned long)id_state->id[1].real,
               (unsigned long)id_state->id[1].effective,

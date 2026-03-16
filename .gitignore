@@ -3,3 +3,4 @@
 *.o
 *.a
 /.nfs*
+__pycache__/

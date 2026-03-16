@@ -11,10 +11,23 @@
 #include <inttypes.h>
 #include <sys/types.h>
 
+// concrete ABI modes, not AUDIT_ARCH_* values.
+typedef enum {
+    SYSCALL_ABI_UNKNOWN = 0,
+    SYSCALL_ABI_X86_64,
+    SYSCALL_ABI_X86_I386,
+    SYSCALL_ABI_AARCH64,
+    SYSCALL_ABI_ARM,
+    SYSCALL_ABI_PPC64LE,
+    SYSCALL_ABI_S390X,
+    SYSCALL_ABI_COUNT,
+} syscall_abi_t;
+
 typedef struct {
     uint64_t args[6];
     uint64_t no;
     uint64_t ret;
+    syscall_abi_t abi;
 } syscall_ctx_t;
 
 int write_u32_to_child(pid_t pid, uint64_t addr, uint32_t value);

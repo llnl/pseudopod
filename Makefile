@@ -21,6 +21,7 @@ LIB_C_SRCS   := \
 	$(SRCDIR)/libpseudo/seccomp.c \
 	$(SRCDIR)/libpseudo/log.c \
 	$(SRCDIR)/libpseudo/syscall.c \
+	$(SRCDIR)/libpseudo/nr_map.c \
 	$(SRCDIR)/libpseudo/emulation.c \
 	$(SRCDIR)/handlers/idtrack.c \
 	$(SRCDIR)/handlers/virtid.c
