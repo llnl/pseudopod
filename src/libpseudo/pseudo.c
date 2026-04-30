@@ -53,8 +53,8 @@ int pseudo_run(pseudo_config_t* pseudo_cfg) {
 
     // Always run the tracing/event loop. If no handlers are attached,
     // it acts as a passthrough runner.
-    (void)handle_events(child, pseudo_cfg);
+    int rv = handle_events(child, pseudo_cfg);
 
     log_debug("pseudo_run: done");
-    return 0;
+    return rv;
 }

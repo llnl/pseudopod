@@ -153,6 +153,7 @@ int handle_events(pid_t child, pseudo_config_t* cfg) {
     seize_child(child);
     continue_tracee(child, 0);
 
+    int last_return = -1;
     for (;;) {
         pid_t pid = waitpid(-1, &status, __WALL);
         if (pid == -1) {
@@ -174,6 +175,7 @@ int handle_events(pid_t child, pseudo_config_t* cfg) {
         log_trace("handle_events: callbacks succeded");
 
         if (WIFEXITED(status)) {
+            last_return = WEXITSTATUS(status);
             log_trace("handle_events: pid %d: exited", pid);
             continue;
         }
@@ -204,5 +206,5 @@ int handle_events(pid_t child, pseudo_config_t* cfg) {
             continue_tracee(pid, fwd_sig);
         }
     }
-    return EXIT_SUCCESS;
+    return last_return;
 }
