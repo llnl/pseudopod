@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <pseudo/pseudo.h>
 #include <pseudo/syscall.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/ptrace.h>
