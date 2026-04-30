@@ -18,6 +18,7 @@ extern "C" {
 #include <pseudo/pseudo.h>
 #include <handlers/idtrack.h>
 #include <handlers/virtid.h>
+#include <handlers/seccomp/seccomp.h>
 #include "userns.h"
 }
 
@@ -460,7 +461,10 @@ public:
         cfg.cfg_child.clone_flags    = CLONE_NEWNS | CLONE_NEWUSER;
         cfg.cfg_child.child_argv     = this->targv;
         cfg.cfg_child.child_envp     = nullptr;
-        cfg.cfg_child.filters        = (const seccomp_fprog**) this->filters;
+        
+        // Attach seccomp handler
+        seccomp_attach_handlers(&cfg, this->filters);
+        
         pseudo_cb_add(&cfg.cfg_child.cbs,
                       (void*)&cb_child_set_podman_envars_and_mount,
                       const_cast<ChildCtx*>(&this->child_ctx)

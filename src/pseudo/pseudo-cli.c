@@ -12,6 +12,7 @@
 #include <pseudo/pseudo.h>
 #include <handlers/idtrack.h>
 #include <handlers/virtid.h>
+#include <handlers/seccomp/seccomp.h>
 
 static int fakeroot = 0;
 static int tracer = 1;
@@ -115,6 +116,7 @@ int main(int argc, char *argv[]) {
 
     idtrack_set_base(id_states, base_id);
 
+    // Configure seccomp filters
     const seccomp_fprog* filters[] = { get_filter_trace(), get_filter_fakechown(), NULL };
     if (fakeroot) {
         filters[0] = get_filter_fakeroot();
@@ -130,8 +132,11 @@ int main(int argc, char *argv[]) {
     pseudo_init_config(&cfg);
 
     cfg.cfg_child.child_argv = targv;
-    cfg.cfg_child.filters    = filters;
 
+    // Attach seccomp handler
+    seccomp_attach_handlers(&cfg, filters);
+
+    // Attach virtid handler (unless in fakeroot mode)
     if (!fakeroot) {
         virtid_attach_handlers(&cfg, id_states);
     }
@@ -145,4 +150,3 @@ int main(int argc, char *argv[]) {
 
     return rc;
 }
-
