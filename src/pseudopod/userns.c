@@ -279,7 +279,7 @@ int get_subid_config(subid_range_t *uid_range, subid_range_t *gid_range) {
         free(buf);
         goto fail;
     }
-    strncpy(gname, gr_result->gr_name, 64);
+    strncpy(gname, gr_result->gr_name, 63);
     free(buf);
 
     if (resolve_path("newuidmap", 256, newuidmap)) {

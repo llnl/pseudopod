@@ -58,14 +58,20 @@ all: dirs $(PSEUDO_BIN) $(POD_BIN)
 dirs:
 	@mkdir -p $(LIBDIR) $(BINDIR)
 
+
+.PHONY: libpseudo libpseudo-static pseudo pseudopod
 # Static-only library
+libpseudo: libpseudo-static
+libpseudo-static: $(STATIC_LIB)
 $(STATIC_LIB): $(LIB_C_OBJS)
 	$(AR) crs $@ $^
 
 # Binaries
+pseudo: $(PSEUDO_BIN)
 $(PSEUDO_BIN): $(PSEUDO_OBJS) $(STATIC_LIB)
 	$(CC) $(CFLAGS) -o $@ $(PSEUDO_OBJS) $(STATIC_LIB) $(LDFLAGS)
 
+pseudopod: $(POD_BIN)
 $(POD_BIN): $(POD_OBJS) $(STATIC_LIB)
 	$(CXX) $(CXXFLAGS) -o $@ $(POD_OBJS) $(STATIC_LIB) $(CXXLDFLAGS) $(LIBS)
 
@@ -85,7 +91,20 @@ $(SRCDIR)/pseudo/%.o: $(SRCDIR)/pseudo/%.c
 $(SRCDIR)/pseudopod/%.o: $(SRCDIR)/pseudopod/%.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
+.PHONY: test tests tests-build tests-run tests-clean
+test: tests
+tests: tests-run
+tests-build: pseudo
+	$(MAKE) -C tests
+
+tests-run: tests-build
+	$(MAKE) -C tests run
+
+tests-clean:
+	$(MAKE) -C tests clean
+
 clean:
+	$(MAKE) -C tests clean
 	rm -f \
 	  $(LIBDIR)/libpseudo.a \
 	  $(BINDIR)/pseudo $(BINDIR)/pseudopod \
