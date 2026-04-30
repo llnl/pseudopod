@@ -12,6 +12,7 @@
 #include <sys/wait.h>
 #include <sys/ptrace.h>
 #include <linux/ptrace.h>
+#include <sys/syscall.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>

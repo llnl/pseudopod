@@ -18,12 +18,15 @@ BINDIR   := bin
 LIB_C_SRCS   := \
 	$(SRCDIR)/libpseudo/cbmanage.c \
 	$(SRCDIR)/libpseudo/pseudo.c \
-	$(SRCDIR)/libpseudo/seccomp.c \
 	$(SRCDIR)/libpseudo/log.c \
 	$(SRCDIR)/libpseudo/syscall.c \
 	$(SRCDIR)/libpseudo/emulation.c \
 	$(SRCDIR)/handlers/idtrack.c \
-	$(SRCDIR)/handlers/virtid.c
+	$(SRCDIR)/handlers/virtid.c \
+	$(SRCDIR)/handlers/seccomp/seccomp.c \
+	$(SRCDIR)/handlers/seccomp/filter_trace.c \
+	$(SRCDIR)/handlers/seccomp/filter_fakechown.c \
+	$(SRCDIR)/handlers/seccomp/filter_fakeroot.c
 
 # App sources
 PSEUDO_SRCS := \
@@ -71,6 +74,9 @@ $(SRCDIR)/libpseudo/%.o: $(SRCDIR)/libpseudo/%.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 $(SRCDIR)/handlers/%.o: $(SRCDIR)/handlers/%.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+$(SRCDIR)/handlers/seccomp/%.o: $(SRCDIR)/handlers/seccomp/%.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 $(SRCDIR)/pseudo/%.o: $(SRCDIR)/pseudo/%.c

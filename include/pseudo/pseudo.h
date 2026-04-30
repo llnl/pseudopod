@@ -7,7 +7,6 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <unistd.h>
-#include <pseudo/seccomp.h>
 #include <pseudo/syscall.h>
 #include <sys/ptrace.h>
 
@@ -46,7 +45,6 @@ typedef struct {
     int clone_flags;  // extra flags to pass to CLONE
     char** child_argv;
     char** child_envp;
-    const seccomp_fprog** filters;
     pseudo_callbacks_t cbs;
 } pseudo_config_child_t;
 

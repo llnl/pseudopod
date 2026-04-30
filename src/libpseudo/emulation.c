@@ -119,21 +119,6 @@ static int child_exec(void *v_args) {
         envp = cfg->child_envp;
     }
 
-    if (cfg->filters) {
-        log_trace("child_exec: installing seccomp filters");
-        set_no_new_privs();
-        for (int i = 0;; i++) {
-            const seccomp_fprog* fprog = cfg->filters[i];
-            if (cfg->filters[i]) {
-                log_trace("child_exec: install filter #%d", i);
-                install_filter(fprog);
-            } else {
-                break;
-            }
-        }
-        log_trace("child_exec: seccomp done");
-    }
-
     log_debug("child_exec: exec");
     execvpe(cfg->child_argv[0], cfg->child_argv, envp);
     die("execvp returned");
