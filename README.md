@@ -111,20 +111,94 @@ itself.
 
 ## Requirements
 - Linux with user namespaces enabled
-  `sysctl user.max_user_namespaces` must be greater than 0.
+  `sysctl user.max_user_namespaces` must be greater than 0 (only required when
+  building CLI tools).
 - Linux kernel built with `seccomp` support, with `SCMP_ACT_TRACE`.
 - `process_vm_writev` support, plus `ptrace` permission to trace the target and
 its children.
+- GNU autotools: `aclocal`, `autoconf`, `automake`, `libtool`
 
 Pseudopod currently supports `x86_64`, `aarch64`, and `ppc64le` architectures.
 
 ## Building
-Dependencies:
 
-- C and C++ compiler.
-- `libcap` (used to detect whether `subuid` / `subgid` are usable).
+### Quick start
+```bash
+./autogen.sh
+./configure
+make
+make install
+```
 
-By default, `libgcc` and `libc++` are linked statically.
+### Dependencies
+
+Build-time dependencies:
+- C and C++ compiler with C++17 support
+- GNU autotools (autoconf, automake, libtool)
+- `libcap` (optional, used to detect whether `subuid` / `subgid` are usable)
+
+### Build configuration
+
+Pseudopod uses GNU autotools for its build system. After cloning the repository, run `./autogen.sh` to generate the configure script:
+
+```bash
+./autogen.sh
+```
+
+Then configure and build:
+
+```bash
+./configure [OPTIONS]
+make
+```
+
+Common configuration options:
+
+| Option | Description |
+|--------|-------------|
+| `--prefix=DIR` | Install to DIR (default: `/usr/local`) |
+| `--disable-cli-tools` | Build only `libpseudo` C library |
+| `--disable-tests` | Disable test suite |
+| `--with-libcap` | Enable `libcap` support (default) |
+| `--without-libcap` | Disable `libcap` support |
+| `--enable-static-libgcc` | Link `libgcc` statically in CLI tools |
+| `--enable-static-libstdcxx` | Link `libstdc++` statically in CLI tools |
+| `--enable-static-libs` | Link both `libgcc` and `libstdc++` statically |
+
+For a complete list of options:
+```bash
+./configure --help
+```
+
+### Build targets
+
+| Target | Description |
+|--------|-------------|
+| `make` | Build everything |
+| `make install` | Install libraries and binaries |
+| `make clean` | Remove build artifacts |
+| `make distclean` | Remove all generated files (requires re-running `./autogen.sh`) |
+
+### Library-only build
+
+To build only `libpseudo` without CLI tools:
+
+```bash
+./configure --disable-cli-tools
+make
+make install
+```
+
+This is useful when you only need the library for integration with other projects.
+
+### Static linking
+
+By default, CLI tools link dynamically. To link `libgcc` and `libstdc++` statically:
+
+```bash
+./configure --enable-static-libs
+make
+```
 
 ## Performance
 The emulation layer imposes:
