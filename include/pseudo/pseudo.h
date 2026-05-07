@@ -10,15 +10,6 @@
 #include <pseudo/syscall.h>
 #include <sys/ptrace.h>
 
-// ID tracker types
-typedef struct {
-    uint32_t real, effective, saved;
-} ids_t;
-
-typedef struct {
-    ids_t id[2]; // id[0]: user, id[1]: group
-} id_state_t;
-
 // callback function signatures
 typedef int (parent_cb_func_t)(pid_t child, void* cb_args);
 typedef int (child_cb_func_t)(void* cb_args);
@@ -80,6 +71,11 @@ void pseudo_cb_free(pseudo_callbacks_t* cbs);
 void pseudo_cb_add(pseudo_callbacks_t* cbs, void* cb, void* cb_args);
 void pseudo_cb_adds(pseudo_callbacks_t* cbs, const pseudo_cb_t* pseudo_cb);
 
-int pseudo_run(pseudo_config_t* cfg);
+int pseudo_run(const pseudo_config_t* cfg);
+
+// parent must call pseudo_fork_wait to handle trace events
+int pseudo_fork(const pseudo_config_t* cfg);
+// wait for pseudo_fork child to exit, handling events
+int pseudo_fork_wait(int child, const pseudo_config_t* pseudo_cfg);
 
 #endif // LIBPSEUDO_PSEUDO_H

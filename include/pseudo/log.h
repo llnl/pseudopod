@@ -5,27 +5,27 @@
 #define PSEUDO_LOG_H
 
 typedef enum LogLevel {
-    LOG_FATAL = 0,
-    LOG_ERROR = 1,
-    LOG_WARN  = 2,
-    LOG_INFO  = 3,
-    LOG_DEBUG = 4,
-    LOG_TRACE = 5
+    PSEUDO_LOGLEVEL_FATAL = 0,
+    PSEUDO_LOGLEVEL_ERROR = 1,
+    PSEUDO_LOGLEVEL_WARN  = 2,
+    PSEUDO_LOGLEVEL_INFO  = 3,
+    PSEUDO_LOGLEVEL_DEBUG = 4,
+    PSEUDO_LOGLEVEL_TRACE = 5
 } LogLevel;
 
 int  pseudo_log_get_level(void);
 void pseudo_log_set_level(int level);
 void pseudo_log(int level, const char* fmt, ...);
-void log_perror(int level, const char* msg);
+void pseudo_log_perror(int level, const char* msg);
 
-void log_fatal(const char* fmt, ...);
-void log_error(const char* fmt, ...);
-void log_warn (const char* fmt, ...);
-void log_info (const char* fmt, ...);
-void log_debug(const char* fmt, ...);
-void log_trace(const char* fmt, ...);
+void pseudo_log_fatal(const char* fmt, ...);
+void pseudo_log_error(const char* fmt, ...);
+void pseudo_log_warn (const char* fmt, ...);
+void pseudo_log_info (const char* fmt, ...);
+void pseudo_log_debug(const char* fmt, ...);
+void pseudo_log_trace(const char* fmt, ...);
 
 // print errno and terminate
-void die(const char* msg);
+void pseudo_die(const char* msg);
 
 #endif

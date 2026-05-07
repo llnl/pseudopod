@@ -16,6 +16,15 @@
 
 #define L2_MASK (IDST_L2_SZ - 1)
 
+// ID tracker types
+typedef struct {
+    uint32_t real, effective, saved;
+} ids_t;
+
+typedef struct {
+    ids_t id[2]; // id[0]: user, id[1]: group
+} id_state_t;
+
 typedef struct {
     uint32_t valid;
     id_state_t v;

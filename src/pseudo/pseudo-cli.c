@@ -10,6 +10,7 @@
 #include <sched.h>
 #include <sys/mount.h>
 #include <pseudo/pseudo.h>
+#include <pseudo/log.h>
 #include <handlers/idtrack.h>
 #include <handlers/virtid.h>
 #include <handlers/seccomp/seccomp.h>
@@ -140,6 +141,8 @@ int main(int argc, char *argv[]) {
     if (!fakeroot) {
         virtid_attach_handlers(&cfg, id_states);
     }
+
+    pseudo_log_set_level(PSEUDO_LOGLEVEL_WARN);
 
     int rc = pseudo_run(&cfg);
 

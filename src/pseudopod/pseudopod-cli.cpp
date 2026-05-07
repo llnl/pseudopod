@@ -20,6 +20,7 @@ extern "C" {
 #include <handlers/virtid.h>
 #include <handlers/seccomp/seccomp.h>
 #include "userns.h"
+#include <pseudo/log.h>
 }
 
 // -------------------- Utilities and C resource helpers --------------------
@@ -490,6 +491,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
+    pseudo_log_set_level(PSEUDO_LOGLEVEL_WARN);
     RuntimePlan plan(options);
 
     return plan.run();

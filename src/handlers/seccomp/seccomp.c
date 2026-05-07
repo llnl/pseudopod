@@ -26,19 +26,19 @@ static int seccomp_child_cb(void* cb_args) {
     seccomp_handler_state_t* state = (seccomp_handler_state_t*)cb_args;
 
     if (!state || !state->filters) {
-        log_trace("seccomp_handler: no filters to install");
+        pseudo_log_trace("seccomp_handler: no filters to install");
         return 0;
     }
 
-    log_trace("seccomp_handler: installing filters");
+    pseudo_log_trace("seccomp_handler: installing filters");
     set_no_new_privs();
 
     for (int i = 0; state->filters[i] != NULL; i++) {
-        log_trace("seccomp_handler: install filter #%d", i);
+        pseudo_log_trace("seccomp_handler: install filter #%d", i);
         install_filter(state->filters[i]);
     }
 
-    log_trace("seccomp_handler: filters installed successfully");
+    pseudo_log_trace("seccomp_handler: filters installed successfully");
     return 0;
 }
 
@@ -52,14 +52,14 @@ seccomp_callbacks_t seccomp_callbacks(const seccomp_fprog* const* filters) {
     memset(&out, 0, sizeof(out));
 
     if (!filters) {
-        log_warn("seccomp_callbacks: NULL filters array provided");
+        pseudo_log_warn("seccomp_callbacks: NULL filters array provided");
         return out;
     }
 
     // Allocate state for the handler
     seccomp_handler_state_t* state = (seccomp_handler_state_t*)malloc(sizeof(seccomp_handler_state_t));
     if (!state) {
-        die("seccomp_callbacks: failed to allocate handler state");
+        pseudo_die("seccomp_callbacks: failed to allocate handler state");
     }
 
     state->filters = filters;
@@ -81,13 +81,13 @@ seccomp_callbacks_t seccomp_callbacks(const seccomp_fprog* const* filters) {
  */
 void seccomp_attach_handlers(pseudo_config_t* cfg, const seccomp_fprog* const* filters) {
     if (!cfg) {
-        log_error("seccomp_attach_handlers: NULL config provided");
+        pseudo_log_error("seccomp_attach_handlers: NULL config provided");
         return;
     }
 
     seccomp_callbacks_t cbs = seccomp_callbacks(filters);
     pseudo_cb_adds(&cfg->cfg_child.cbs, &cbs.child);
-    log_debug("seccomp_attach_handlers: handlers attached");
+    pseudo_log_debug("seccomp_attach_handlers: handlers attached");
 }
 
 /**
@@ -97,7 +97,7 @@ void seccomp_attach_handlers(pseudo_config_t* cfg, const seccomp_fprog* const* f
  */
 void set_no_new_privs(void) {
     if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1) {
-        die("prctl NO_NEW_PRIVS");
+        pseudo_die("prctl NO_NEW_PRIVS");
     }
 }
 
@@ -108,18 +108,18 @@ void set_no_new_privs(void) {
  */
 void install_filter(const seccomp_fprog* fprog) {
     if (!fprog) {
-        log_warn("install_filter: NULL filter provided");
+        pseudo_log_warn("install_filter: NULL filter provided");
         return;
     }
 
     // Prefer seccomp() syscall if available, otherwise prctl(PR_SET_SECCOMP).
 #ifdef SYS_seccomp
     if (syscall(SYS_seccomp, SECCOMP_SET_MODE_FILTER, 0, fprog) == -1) {
-        die("seccomp(SECCOMP_SET_MODE_FILTER)");
+        pseudo_die("seccomp(SECCOMP_SET_MODE_FILTER)");
     }
 #else
     if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, fprog) == -1) {
-        die("prctl(PR_SET_SECCOMP)");
+        pseudo_die("prctl(PR_SET_SECCOMP)");
     }
 #endif
 }

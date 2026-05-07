@@ -24,7 +24,7 @@
 idtrack_t* idtrack_init() {
     idtrack_t* idt = (idtrack_t*) malloc(sizeof(idtrack_t));
     if (!idt) {
-        die("get_id_tracker: failed to allocate memory: ");
+        pseudo_die("get_id_tracker: failed to allocate memory: ");
     }
     memset(idt, 0, sizeof(idtrack_t));
     return idt;

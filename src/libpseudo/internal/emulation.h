@@ -7,7 +7,6 @@
 #include <handlers/idtrack.h>
 #include <pseudo/pseudo.h>
 
-int do_clone(const pseudo_config_child_t* cfg);
-int handle_events(pid_t child, pseudo_config_t* cfg);
+int handle_events(pid_t child, const pseudo_config_t* cfg);
 
 #endif // LIBPSEUDO_EMULATION_H

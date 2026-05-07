@@ -9,10 +9,10 @@
 
 // Callback manager
 
-void _pseudo_cb_grow(pseudo_callbacks_t* cbs) {
+static void _pseudo_cb_grow(pseudo_callbacks_t* cbs) {
     cbs->callbacks = (pseudo_cb_t*) reallocarray(cbs->callbacks, cbs->size+8, sizeof(pseudo_cb_t));
     if (!cbs->callbacks) {
-        die("_pseudo_cb_grow: failed to allocate memory: ");
+        pseudo_die("_pseudo_cb_grow: failed to allocate memory: ");
     }
     cbs->size += 8;
 }

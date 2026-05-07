@@ -27,7 +27,7 @@ _idst_l2* idst_get_l2d(idtrack_t* idstates, pid_t pid) {
     if (!l2d) {
         l2d = (_idst_l2*) malloc(sizeof(_idst_l2));
         if (!l2d) {
-            die("idst_get_l2d: failed to allocate memory: ");
+            pseudo_die("idst_get_l2d: failed to allocate memory: ");
         }
         memset(l2d, 0, sizeof(_idst_l2));
         idstates->l1[l1i] = l2d;
@@ -136,51 +136,51 @@ int handle_uid_syscalls(pid_t pid, syscall_ctx_t* sc, void* v_args) {
     id_state_t *id_state = get_id_state(id_states, pid);
     switch (sc->no) {
       case __NR_setuid:
-        log_trace("setuid: %lu", (unsigned long)sc->args[0]);
+        pseudo_log_trace("setuid: %lu", (unsigned long)sc->args[0]);
         handle_setid(sc, id_state, 0);
         break;
       case __NR_setreuid:
-        log_trace("setreuid: %lu %lu", (unsigned long)sc->args[0], (unsigned long)sc->args[1]);
+        pseudo_log_trace("setreuid: %lu %lu", (unsigned long)sc->args[0], (unsigned long)sc->args[1]);
         handle_setreid(sc, &id_state->id[0]);
         break;
       case __NR_setresuid:
-        log_trace("setresuid: %lu %lu %lu", (unsigned long)sc->args[0], (unsigned long)sc->args[1], (unsigned long)sc->args[2]);
+        pseudo_log_trace("setresuid: %lu %lu %lu", (unsigned long)sc->args[0], (unsigned long)sc->args[1], (unsigned long)sc->args[2]);
         handle_setresid(sc, &id_state->id[0]);
         break;
       case __NR_setgid:
-        log_trace("setgid: %lu", (unsigned long)sc->args[0]);
+        pseudo_log_trace("setgid: %lu", (unsigned long)sc->args[0]);
         handle_setid(sc, id_state, 1);
         break;
       case __NR_setregid:
-        log_trace("setregid: %lu %lu", (unsigned long)sc->args[0], (unsigned long)sc->args[1]);
+        pseudo_log_trace("setregid: %lu %lu", (unsigned long)sc->args[0], (unsigned long)sc->args[1]);
         handle_setreid(sc, &id_state->id[1]);
         break;
       case __NR_setresgid:
-        log_trace("setresgid: %lu %lu %lu", (unsigned long)sc->args[0], (unsigned long)sc->args[1], (unsigned long)sc->args[2]);
+        pseudo_log_trace("setresgid: %lu %lu %lu", (unsigned long)sc->args[0], (unsigned long)sc->args[1], (unsigned long)sc->args[2]);
         handle_setresid(sc, &id_state->id[1]);
         break;
       case __NR_getuid:
-        log_trace("getuid: %lu", (unsigned long)id_state->id[0].real);
+        pseudo_log_trace("getuid: %lu", (unsigned long)id_state->id[0].real);
         sc->ret = id_state->id[0].real;
         sc->no = -1;
         break;
       case __NR_geteuid:
-        log_trace("geteuid: %lu", (unsigned long)id_state->id[0].effective);
+        pseudo_log_trace("geteuid: %lu", (unsigned long)id_state->id[0].effective);
         sc->ret = id_state->id[0].effective;
         sc->no = -1;
         break;
       case __NR_getgid:
-        log_trace("getgid: %lu", (unsigned long)id_state->id[1].real);
+        pseudo_log_trace("getgid: %lu", (unsigned long)id_state->id[1].real);
         sc->ret = id_state->id[1].real;
         sc->no = -1;
         break;
       case __NR_getegid:
-        log_trace("getegid: %lu", (unsigned long)id_state->id[1].effective);
+        pseudo_log_trace("getegid: %lu", (unsigned long)id_state->id[1].effective);
         sc->ret = id_state->id[1].effective;
         sc->no = -1;
         break;
       case __NR_getresuid: {
-        log_trace("getresuid: %lu %lu %lu",
+        pseudo_log_trace("getresuid: %lu %lu %lu",
               (unsigned long)id_state->id[0].real,
               (unsigned long)id_state->id[0].effective,
               (unsigned long)id_state->id[0].saved);
@@ -188,7 +188,7 @@ int handle_uid_syscalls(pid_t pid, syscall_ctx_t* sc, void* v_args) {
         break;
       }
       case __NR_getresgid: {
-        log_trace("getresgid: %lu %lu %lu",
+        pseudo_log_trace("getresgid: %lu %lu %lu",
               (unsigned long)id_state->id[1].real,
               (unsigned long)id_state->id[1].effective,
               (unsigned long)id_state->id[1].saved);
@@ -205,7 +205,7 @@ int handle_uid_syscalls(pid_t pid, syscall_ctx_t* sc, void* v_args) {
 static int handle_trace_events(pid_t pid, int status, void* cb_args) {
     idtrack_t* id_states = (idtrack_t*)cb_args;
     if (WIFEXITED(status)) {
-        log_trace("virtid_trace: exited: %d", pid);
+        pseudo_log_trace("virtid_trace: exited: %d", pid);
         erase_id_state(id_states, pid);
     }
     else if (WIFSTOPPED(status)) {
@@ -216,12 +216,12 @@ static int handle_trace_events(pid_t pid, int status, void* cb_args) {
             if (event == PTRACE_EVENT_FORK ||
                 event == PTRACE_EVENT_VFORK ||
                 event == PTRACE_EVENT_CLONE) {
-                log_trace("virtid_trace: handle EVENT_CLONE");
+                pseudo_log_trace("virtid_trace: handle EVENT_CLONE");
                 unsigned long newpid = 0;
                 if (ptrace(PTRACE_GETEVENTMSG, pid, 0, &newpid) == -1) {
-                    log_perror(LOG_ERROR, "PTRACE_GETEVENTMSG");
+                    pseudo_log_perror(PSEUDO_LOGLEVEL_ERROR, "PTRACE_GETEVENTMSG");
                 } else {
-                    log_debug("virtid_trace: unshare id state");
+                    pseudo_log_debug("virtid_trace: unshare id state");
                     unshare_id_state(id_states, pid, newpid);
                 }
             }
@@ -239,7 +239,7 @@ static int virtid_parent_cb(pid_t child, void* cb_args)
 
     id_state_t* base = get_id_state(id_states, parent);
     if (!base) {
-        die("virtid: Failed to get base ID state.");
+        pseudo_die("virtid: Failed to get base ID state.");
     }
 
     /* Seed from tracker-owned base_id */
