@@ -63,8 +63,11 @@ dirs:
 # Static-only library
 libpseudo: libpseudo-static
 libpseudo-static: $(STATIC_LIB)
-$(STATIC_LIB): $(LIB_C_OBJS)
+$(STATIC_LIB): $(LIB_C_OBJS) | $(LIBDIR)
 	$(AR) crs $@ $^
+
+$(LIBDIR):
+	@mkdir -p $(LIBDIR)
 
 # Binaries
 pseudo: $(PSEUDO_BIN)
