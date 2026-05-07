@@ -1,8 +1,8 @@
 // Copyright (c) Lawrence Livermore National Security, LLC and other Pseudopod Contributors. See top-level LICENSE and COPYRIGHT files for dates and other details.
 // SPDX-License-Identifier: (Apache-2.0)
 
-#ifndef PSEUDO_LOG_H
-#define PSEUDO_LOG_H
+#ifndef LIBPSEUDO_LOG_H
+#define LIBPSEUDO_LOG_H
 
 typedef enum LogLevel {
     PSEUDO_LOGLEVEL_FATAL = 0,

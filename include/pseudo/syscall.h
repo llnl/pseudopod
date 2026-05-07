@@ -1,12 +1,8 @@
 // Copyright (c) Lawrence Livermore National Security, LLC and other Pseudopod Contributors. See top-level LICENSE and COPYRIGHT files for dates and other details.
 // SPDX-License-Identifier: (Apache-2.0)
 
-#ifndef LIBPSEUDO_ARCH_H
-#define LIBPSEUDO_ARCH_H
-
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
+#ifndef LIBPSEUDO_SYSCALL_H
+#define LIBPSEUDO_SYSCALL_H
 
 #include <inttypes.h>
 #include <sys/types.h>

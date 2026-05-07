@@ -1,21 +1,18 @@
 // Copyright (c) Lawrence Livermore National Security, LLC and other Pseudopod Contributors. See top-level LICENSE and COPYRIGHT files for dates and other details.
 // SPDX-License-Identifier: (Apache-2.0)
 
-#include <handlers/idtrack.h>
-#include <pseudo/log.h>
-#include <handlers/virtid.h>
-#include <unistd.h>
-#include <pseudo/pseudo.h>
-#include <pseudo/syscall.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/ptrace.h>
-#include <linux/ptrace.h>
-#include <sys/syscall.h>
-#include <errno.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <signal.h>
 #include <string.h>
+#include <sys/syscall.h>
+#include <sys/ptrace.h>
+
+#include <pseudo/pseudo.h>
+#include <pseudo/log.h>
+#include <handlers/idtrack.h>
+#include <handlers/virtid.h>
 
 #define ID_UNCHANGED 0xFFFFFFFF
 

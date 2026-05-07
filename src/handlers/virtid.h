@@ -3,7 +3,6 @@
 
 #ifndef LIBPSEUDO_VIRTID_H
 #define LIBPSEUDO_VIRTID_H
-#include <pseudo/pseudo.h>
 #include <handlers/idtrack.h>
 
 #define ID_UNCHANGED 0xFFFFFFFF

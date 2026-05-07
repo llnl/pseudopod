@@ -4,11 +4,10 @@
 #ifndef LIBPSEUDO_PSEUDO_H
 #define LIBPSEUDO_PSEUDO_H
 
-#include <sys/types.h>
 #include <stdint.h>
-#include <unistd.h>
+#include <sys/types.h>
+
 #include <pseudo/syscall.h>
-#include <sys/ptrace.h>
 
 // callback function signatures
 typedef int (parent_cb_func_t)(pid_t child, void* cb_args);

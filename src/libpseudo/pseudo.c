@@ -1,15 +1,22 @@
 // Copyright (c) Lawrence Livermore National Security, LLC and other Pseudopod Contributors. See top-level LICENSE and COPYRIGHT files for dates and other details.
 // SPDX-License-Identifier: (Apache-2.0)
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
-#include "internal/emulation.h"
-#include <pseudo/log.h>
-#include <pseudo/pseudo.h>
+#endif
+
+#include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
+
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <stdlib.h>
 #include <sched.h>
+
+#include <pseudo/pseudo.h>
+#include <pseudo/log.h>
+
+#include "internal/emulation.h"
 
 void pseudo_init_config(pseudo_config_t* cfg) {
     memset(cfg, 0, sizeof(pseudo_config_t));

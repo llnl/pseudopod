@@ -4,9 +4,7 @@
 #ifndef LIBPSEUDO_IDTRACK_H
 #define LIBPSEUDO_IDTRACK_H
 
-#include <sys/types.h>
 #include <stdint.h>
-#include <pseudo/pseudo.h>   // id_state_t
 
 #define IDST_L1_BITS 11
 #define IDST_L2_BITS 11

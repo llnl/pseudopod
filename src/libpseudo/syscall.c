@@ -1,10 +1,13 @@
 // Copyright (c) Lawrence Livermore National Security, LLC and other Pseudopod Contributors. See top-level LICENSE and COPYRIGHT files for dates and other details.
 // SPDX-License-Identifier: (Apache-2.0)
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include <pseudo/syscall.h>
 #include <pseudo/log.h>
 
-#define _GNU_SOURCE
 #include <sys/ptrace.h>
 #include <sys/uio.h>
 #include <errno.h>
