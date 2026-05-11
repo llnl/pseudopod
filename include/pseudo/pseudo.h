@@ -4,21 +4,10 @@
 #ifndef LIBPSEUDO_PSEUDO_H
 #define LIBPSEUDO_PSEUDO_H
 
-#include <sys/types.h>
 #include <stdint.h>
-#include <unistd.h>
-#include <pseudo/seccomp.h>
+#include <sys/types.h>
+
 #include <pseudo/syscall.h>
-#include <sys/ptrace.h>
-
-// ID tracker types
-typedef struct {
-    uint32_t real, effective, saved;
-} ids_t;
-
-typedef struct {
-    ids_t id[2]; // id[0]: user, id[1]: group
-} id_state_t;
 
 // callback function signatures
 typedef int (parent_cb_func_t)(pid_t child, void* cb_args);
@@ -38,7 +27,7 @@ typedef void cb_manager_t;
 typedef struct {
     pseudo_cb_t* callbacks;
     int len;
-    cb_manager_t* _mgr;
+    int size;
 } pseudo_callbacks_t;
 
 // parameters for tracee
@@ -46,7 +35,6 @@ typedef struct {
     int clone_flags;  // extra flags to pass to CLONE
     char** child_argv;
     char** child_envp;
-    const seccomp_fprog** filters;
     pseudo_callbacks_t cbs;
 } pseudo_config_child_t;
 
@@ -63,8 +51,6 @@ typedef struct {
 // parameters for parent
 typedef struct {
     pseudo_callbacks_t cbs;
-    int virt_enabled;
-    id_state_t base_id;
 } pseudo_config_parent_t;
 
 // top-level config
@@ -81,9 +67,14 @@ void pseudo_free_config(pseudo_config_t* cfg);
 void pseudo_cb_init(pseudo_callbacks_t* cbs);
 void pseudo_cb_free(pseudo_callbacks_t* cbs);
 // copies *sc_cb into cbs->callbacks - reallocs array!
-int pseudo_cb_add(pseudo_callbacks_t* cbs, void* cb, void* cb_args);
-int pseudo_cb_adds(pseudo_callbacks_t* cbs, const pseudo_cb_t* pseudo_cb);
+void pseudo_cb_add(pseudo_callbacks_t* cbs, void* cb, void* cb_args);
+void pseudo_cb_adds(pseudo_callbacks_t* cbs, const pseudo_cb_t* pseudo_cb);
 
-int pseudo_run(pseudo_config_t* cfg);
+int pseudo_run(const pseudo_config_t* cfg);
+
+// parent must call pseudo_fork_wait to handle trace events
+int pseudo_fork(const pseudo_config_t* cfg);
+// wait for pseudo_fork child to exit, handling events
+int pseudo_fork_wait(int child, const pseudo_config_t* pseudo_cfg);
 
 #endif // LIBPSEUDO_PSEUDO_H

@@ -1,10 +1,13 @@
 // Copyright (c) Lawrence Livermore National Security, LLC and other Pseudopod Contributors. See top-level LICENSE and COPYRIGHT files for dates and other details.
 // SPDX-License-Identifier: (Apache-2.0)
 
-#include <pseudo/syscall.h>
-#include "internal/log.h"
-
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
+
+#include <pseudo/syscall.h>
+#include <pseudo/log.h>
+
 #include <sys/ptrace.h>
 #include <sys/uio.h>
 #include <errno.h>
@@ -18,7 +21,7 @@ int write_u32_to_child(pid_t pid, uint64_t addr, uint32_t value) {
     if (nw == (ssize_t)sizeof(value)) { return 0; }
 
     // attempt fallback via ptrace PEEK/POKE (word-aligned read-modify-write)
-    DEBUG(stderr, "process_vm_writev failed. Falling back to PTRACE_POKE\n");
+    pseudo_log_debug("process_vm_writev failed. Falling back to PTRACE_POKE");
     errno = 0;
     uint64_t word = ptrace(PTRACE_PEEKDATA, pid, (void *)(uintptr_t)addr, NULL);
     if (word == (uint64_t)-1 && errno != 0) {
@@ -40,7 +43,7 @@ int write_u64_to_child(pid_t pid, uint64_t addr, uint64_t value) {
     if (nw == (ssize_t)sizeof(value)) return 0;
 
     // attempt fallback via ptrace PEEK/POKE (word-aligned read-modify-write)
-    DEBUG(stderr, "process_vm_writev failed. Falling back to PTRACE_POKE\n");
+    pseudo_log_debug("process_vm_writev failed. Falling back to PTRACE_POKE");
     if (addr % sizeof(uint64_t) != 0) {
         errno = EINVAL;
         return -1;

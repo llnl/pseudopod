@@ -16,7 +16,11 @@
 
 extern "C" {
 #include <pseudo/pseudo.h>
+#include <handlers/idtrack.h>
+#include <handlers/virtid.h>
+#include <handlers/seccomp/seccomp.h>
 #include "userns.h"
+#include <pseudo/log.h>
 }
 
 // -------------------- Utilities and C resource helpers --------------------
@@ -437,11 +441,19 @@ public:
             return EXIT_FAILURE;
         }
 
+        idtrack_t* id_states = nullptr;
+
         pseudo_config_t cfg;
         pseudo_init_config(&cfg);
 
-        cfg.cfg_parent.base_id       = this->base_id;
-        cfg.cfg_parent.virt_enabled  = this->virt_enabled;
+        if (this->virt_enabled) {
+            id_states = idtrack_init();
+            idtrack_set_base(id_states, this->base_id);
+            virtid_callbacks_t v = virtid_callbacks(id_states);
+            pseudo_cb_adds(&cfg.cfg_parent.cbs,  &v.parent);
+            pseudo_cb_adds(&cfg.cfg_tracer.cbs,  &v.tracer);
+            pseudo_cb_adds(&cfg.cfg_syscall.cbs, &v.syscall);
+        }
         pseudo_cb_add(&cfg.cfg_parent.cbs,
                       (void*) this->parent_cb,
                       const_cast<setup_userns_config_t*>(parent_cbargs)
@@ -450,13 +462,22 @@ public:
         cfg.cfg_child.clone_flags    = CLONE_NEWNS | CLONE_NEWUSER;
         cfg.cfg_child.child_argv     = this->targv;
         cfg.cfg_child.child_envp     = nullptr;
-        cfg.cfg_child.filters        = (const seccomp_fprog**) this->filters;
+        
+        // Attach seccomp handler
+        seccomp_attach_handlers(&cfg, this->filters);
+        
         pseudo_cb_add(&cfg.cfg_child.cbs,
                       (void*)&cb_child_set_podman_envars_and_mount,
                       const_cast<ChildCtx*>(&this->child_ctx)
                       );
 
         int child_rv = pseudo_run(&cfg);
+
+        if (id_states) {
+            idtrack_free(id_states);
+            free(id_states);
+        }
+
         return child_rv == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
     }
 };
@@ -470,6 +491,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
+    pseudo_log_set_level(PSEUDO_LOGLEVEL_WARN);
     RuntimePlan plan(options);
 
     return plan.run();

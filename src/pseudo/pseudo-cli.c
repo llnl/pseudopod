@@ -1,7 +1,6 @@
 // Copyright (c) Lawrence Livermore National Security, LLC and other Pseudopod Contributors. See top-level LICENSE and COPYRIGHT files for dates and other details.
 // SPDX-License-Identifier: (Apache-2.0)
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
@@ -10,6 +9,10 @@
 #include <sched.h>
 #include <sys/mount.h>
 #include <pseudo/pseudo.h>
+#include <pseudo/log.h>
+#include <handlers/idtrack.h>
+#include <handlers/virtid.h>
+#include <handlers/seccomp/seccomp.h>
 
 static int fakeroot = 0;
 static int tracer = 1;
@@ -102,13 +105,18 @@ int main(int argc, char *argv[]) {
         targv = default_argv;
     }
 
-    // initialize starting IDs
+    idtrack_t* id_states = idtrack_init();
+
+   // initialize starting IDs
     id_state_t base_id;
     if (default_uid == (uid_t)-1) { default_uid = getuid(); }
     if (default_gid == (gid_t)-1) { default_gid = getgid(); }
     base_id.id[0].real = base_id.id[0].effective = base_id.id[0].saved = default_uid;
     base_id.id[1].real = base_id.id[1].effective = base_id.id[1].saved = default_gid;
 
+    idtrack_set_base(id_states, base_id);
+
+    // Configure seccomp filters
     const seccomp_fprog* filters[] = { get_filter_trace(), get_filter_fakechown(), NULL };
     if (fakeroot) {
         filters[0] = get_filter_fakeroot();
@@ -123,11 +131,24 @@ int main(int argc, char *argv[]) {
     pseudo_config_t cfg;
     pseudo_init_config(&cfg);
 
-    cfg.cfg_child.child_argv    = targv;
-    cfg.cfg_child.filters       = filters;
-    cfg.cfg_parent.base_id      = base_id;
-    cfg.cfg_parent.virt_enabled = !fakeroot;
+    cfg.cfg_child.child_argv = targv;
 
-    return pseudo_run(&cfg);
+    // Attach seccomp handler
+    seccomp_attach_handlers(&cfg, filters);
+
+    // Attach virtid handler (unless in fakeroot mode)
+    if (!fakeroot) {
+        virtid_attach_handlers(&cfg, id_states);
+    }
+
+    pseudo_log_set_level(PSEUDO_LOGLEVEL_WARN);
+
+    int rc = pseudo_run(&cfg);
+
+    if (id_states) {
+        idtrack_free(id_states);
+        free(id_states);
+    }
+
+    return rc;
 }
-
