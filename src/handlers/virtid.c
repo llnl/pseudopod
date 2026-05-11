@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/syscall.h>
 #include <sys/ptrace.h>
+#include <sys/wait.h>
 
 #include <pseudo/pseudo.h>
 #include <pseudo/log.h>
