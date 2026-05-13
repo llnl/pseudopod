@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
         virtid_attach_handlers(&cfg, id_states);
     }
 
-    pseudo_log_set_level(PSEUDO_LOGLEVEL_WARN);
+    pseudo_log_set_level(PSEUDO_LOGLEVEL_TRACE);
 
     int rc = pseudo_run(&cfg);
 
