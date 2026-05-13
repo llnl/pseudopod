@@ -103,16 +103,18 @@ static inline void handle_setresid(syscall_ctx_t* sc, ids_t* id) {
     uint64_t new_effective = sc->args[1];
     uint64_t new_saved     = sc->args[2];
 
-    if (new_real      > ID_MAX ||
-        new_effective > ID_MAX ||
-        new_saved     > ID_MAX) {
+    // Validate IDs, but allow -1 (ID_UNCHANGED) which may be sign-extended to 64-bit
+    if ((new_real      != (uint64_t)-1 && new_real      != ID_UNCHANGED && new_real      > ID_MAX) ||
+        (new_effective != (uint64_t)-1 && new_effective != ID_UNCHANGED && new_effective > ID_MAX) ||
+        (new_saved     != (uint64_t)-1 && new_saved     != ID_UNCHANGED && new_saved     > ID_MAX)) {
         sc->ret = (unsigned long long)-EINVAL;
         return;
     }
 
-    if (new_real      != ID_UNCHANGED) id->real      = (uint32_t)new_real;
-    if (new_effective != ID_UNCHANGED) id->effective = (uint32_t)new_effective;
-    if (new_saved     != ID_UNCHANGED) id->saved     = (uint32_t)new_saved;
+    // Update only if not -1 (treat both 32-bit and 64-bit representations)
+    if (new_real      != ID_UNCHANGED && new_real      != (uint64_t)-1) id->real      = (uint32_t)new_real;
+    if (new_effective != ID_UNCHANGED && new_effective != (uint64_t)-1) id->effective = (uint32_t)new_effective;
+    if (new_saved     != ID_UNCHANGED && new_saved     != (uint64_t)-1) id->saved     = (uint32_t)new_saved;
     sc->ret = 0;
 }
 
