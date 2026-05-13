@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: (Apache-2.0)
 
 #include <pseudo/log.h>
-#include <error.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>

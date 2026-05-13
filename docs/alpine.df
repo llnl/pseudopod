@@ -1,0 +1,45 @@
+# This is an Alpine environment useful to exercise a libc that is not glibc
+# (musl) and a compiler that is not gcc (clang).
+#
+# For joy:
+#
+#   $ ch-image build docs/alpine.df docs
+#   $ ch-run --unset-env='*' --set-env -b .:/mnt -c /mnt alpine -- \
+#            sh -c 'make clean && make'#
+
+FROM alpine:3.23
+
+# We want to use a C toolchain that’s fully independent from GNU (i.e., gcc(1)
+# and GNU ld(1)). Irritatingly, package clang depends on gcc for the libgcc
+# “compiler runtime library” despite providing its own [1]. apk(8) also cannot
+# force-remove packages [2]. In Charliecloud, we work around this by just
+# deleting the contents of gcc. However, this blows up the pseudopod
+# C++ build, so all that’s left is this gripe.
+#
+# [1]: https://gitlab.alpinelinux.org/alpine/aports/-/issues/14436#note_301167
+# [2]: https://unix.stackexchange.com/questions/475226
+
+# Install Clang and the LLVM linker.
+RUN apk add clang21 \
+            compiler-rt \
+            linux-headers \
+            lld20 \
+            libc++-dev \
+            llvm-libunwind-dev
+# Still use GNU Make (because that’s all there is?)
+RUN apk add make
+# Remove GNU ld(1) at least.
+RUN rm /usr/bin/ld \
+ && ln -s lld /usr/bin/ld
+
+
+# Environment variables.
+# Use Clang.
+ENV CC=clang
+ENV CXX=clang++
+# Be more aggro about warnings but otherwise use the Makefile defaults.
+ENV CFLAGS="-Werror -Wall -Wextra -O3 -fPIC"
+# (1) Use the LLVM linker and compilter runtime.
+# (2) Omit -static-* because those don’t exist.
+ENV LDFLAGS="-fuse-ld=lld -rtlib=compiler-rt"
+ENV CXXLDFLAGS=" $LDFLAGS -unwindlib=libunwind"

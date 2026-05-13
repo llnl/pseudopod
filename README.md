@@ -119,6 +119,9 @@ its children.
 Pseudopod currently supports `x86_64`, `aarch64`, and `ppc64le` architectures.
 
 ## Building
+There is no `configure` or similar. It’s an artisanal Makefile. Just type
+`make`.
+
 Dependencies:
 
 - C and C++ compiler.
