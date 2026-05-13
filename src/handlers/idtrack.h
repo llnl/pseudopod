@@ -21,6 +21,8 @@ typedef struct {
 
 typedef struct {
     ids_t id[2]; // id[0]: user, id[1]: group
+    uint32_t fsuid;  // filesystem user ID
+    uint32_t fsgid;  // filesystem group ID
 } id_state_t;
 
 typedef struct {

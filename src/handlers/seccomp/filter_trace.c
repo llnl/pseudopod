@@ -15,18 +15,20 @@ static struct sock_filter seccomp_filter_trace[] = {
     BPF_STMT(BPF_LD  | BPF_W | BPF_ABS, offsetof(struct seccomp_data, nr)),
 
     // x86_64 - ACT_TRACE
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_setuid,    12, 0), // -> trace
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_setgid,    11, 0), // -> trace
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_getuid,    10, 0), // -> trace
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_getgid,     9, 0), // -> trace
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_geteuid,    8, 0), // -> trace
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_getegid,    7, 0), // -> trace
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_setreuid,   6, 0), // -> trace
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_setregid,   5, 0), // -> trace
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_setresuid,  4, 0), // -> trace
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_setresgid,  3, 0), // -> trace
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_getresuid,  2, 0), // -> trace
-    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_getresgid,  1, 0), // -> trace
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_setuid,    14, 0), // -> trace
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_setgid,    13, 0), // -> trace
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_getuid,    12, 0), // -> trace
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_getgid,    11, 0), // -> trace
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_geteuid,   10, 0), // -> trace
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_getegid,    9, 0), // -> trace
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_setreuid,   8, 0), // -> trace
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_setregid,   7, 0), // -> trace
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_setresuid,  6, 0), // -> trace
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_setresgid,  5, 0), // -> trace
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_getresuid,  4, 0), // -> trace
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_getresgid,  3, 0), // -> trace
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_setfsuid,   2, 0), // -> trace
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_setfsgid,   1, 0), // -> trace
 
     // default allow
     BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),

@@ -193,6 +193,28 @@ int handle_uid_syscalls(pid_t pid, syscall_ctx_t* sc, void* v_args) {
         handle_getresid(pid, sc, &id_state->id[1]);
         break;
       }
+      case __NR_setfsuid: {
+        pseudo_log_trace("setfsuid: %lu", (unsigned long)sc->args[0]);
+        uint32_t old_fsuid = id_state->fsuid;
+        uint64_t new_fsuid = sc->args[0];
+        if (new_fsuid <= ID_MAX) {
+            id_state->fsuid = (uint32_t)new_fsuid;
+        }
+        sc->ret = old_fsuid;  // Return previous value
+        sc->no = -1;
+        break;
+      }
+      case __NR_setfsgid: {
+        pseudo_log_trace("setfsgid: %lu", (unsigned long)sc->args[0]);
+        uint32_t old_fsgid = id_state->fsgid;
+        uint64_t new_fsgid = sc->args[0];
+        if (new_fsgid <= ID_MAX) {
+            id_state->fsgid = (uint32_t)new_fsgid;
+        }
+        sc->ret = old_fsgid;  // Return previous value
+        sc->no = -1;
+        break;
+      }
       default:
         // ignore
         break;
@@ -242,6 +264,9 @@ static int virtid_parent_cb(pid_t child, void* cb_args)
 
     /* Seed from tracker-owned base_id */
     memcpy(base, &id_states->base_id, sizeof(*base));
+    /* Initialize fsuid/fsgid to match effective IDs */
+    base->fsuid = base->id[0].effective;
+    base->fsgid = base->id[1].effective;
 
     /* Give child its own copy of the parent’s state */
     unshare_id_state(id_states, parent, child);
