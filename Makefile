@@ -1,13 +1,13 @@
-# Tools and flags
-CXX        := g++
-CC         := gcc
-AR         := ar
-CFLAGS     := -Wall -Wextra -O3 -fPIC
-CXXFLAGS   := $(CFLAGS) -std=c++17
-CPPFLAGS   := -I./include -I./src
-LDFLAGS    := -static-libgcc
-CXXLDFLAGS := -static-libstdc++ $(LDFLAGS)
-# LIBS       := -lcap
+# Tools and flags. If set in the environment, use that value instead of what’s
+# here.
+CXX        ?= g++
+CC         ?= gcc
+AR         ?= ar
+CFLAGS     ?= -Wall -Wextra -O3 -fPIC
+CXXFLAGS   ?= $(CFLAGS) -std=c++17
+CPPFLAGS   ?= -I./include -I./src
+LDFLAGS    ?= -static-libgcc
+CXXLDFLAGS ?= -static-libstdc++ $(LDFLAGS)
 
 # Directories
 SRCDIR   := src
@@ -72,11 +72,11 @@ $(LIBDIR):
 # Binaries
 pseudo: $(PSEUDO_BIN)
 $(PSEUDO_BIN): $(PSEUDO_OBJS) $(STATIC_LIB)
-	$(CC) $(CFLAGS) -o $@ $(PSEUDO_OBJS) $(STATIC_LIB) $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $(LDFLAGS) $(STATIC_LIB) $(PSEUDO_OBJS)
 
 pseudopod: $(POD_BIN)
 $(POD_BIN): $(POD_OBJS) $(STATIC_LIB)
-	$(CXX) $(CXXFLAGS) -o $@ $(POD_OBJS) $(STATIC_LIB) $(CXXLDFLAGS) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(CXXLDFLAGS) $(STATIC_LIB) $(POD_OBJS)
 
 # Compile rules (objects produced next to sources)
 $(SRCDIR)/libpseudo/%.o: $(SRCDIR)/libpseudo/%.c
