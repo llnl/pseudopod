@@ -72,11 +72,11 @@ $(LIBDIR):
 # Binaries
 pseudo: $(PSEUDO_BIN)
 $(PSEUDO_BIN): $(PSEUDO_OBJS) $(STATIC_LIB)
-	$(CC) $(CFLAGS) -o $@ $(LDFLAGS) $(STATIC_LIB) $(PSEUDO_OBJS)
+	$(CC) $(CFLAGS) -o $@ $(PSEUDO_OBJS) $(STATIC_LIB) $(LDFLAGS)
 
 pseudopod: $(POD_BIN)
 $(POD_BIN): $(POD_OBJS) $(STATIC_LIB)
-	$(CXX) $(CXXFLAGS) -o $@ $(CXXLDFLAGS) $(STATIC_LIB) $(POD_OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(POD_OBJS) $(STATIC_LIB) $(CXXLDFLAGS)
 
 # Compile rules (objects produced next to sources)
 $(SRCDIR)/libpseudo/%.o: $(SRCDIR)/libpseudo/%.c
