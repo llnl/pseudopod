@@ -119,8 +119,7 @@ its children.
 Pseudopod currently supports `x86_64`, `aarch64`, and `ppc64le` architectures.
 
 ## Building
-There is no `configure` or similar. It’s an artisanal Makefile. Just type
-`make`.
+There is no `configure` or similar. It’s an artisanal Makefile.
 
 Dependencies:
 
@@ -128,6 +127,18 @@ Dependencies:
 - `libcap` (used to detect whether `subuid` / `subgid` are usable).
 
 By default, `libgcc` and `libc++` are linked statically.
+
+### Everything
+
+Just type `make`.
+
+### libpseudo C library only
+
+`$ make libpseudo`
+
+### Tests
+
+`$ make tests`
 
 ## Performance
 The emulation layer imposes:
