@@ -98,16 +98,49 @@ int syscall_set_regs(pid_t pid, const syscall_ctx_t *in) {
 #define NT_ARM_SYSTEM_CALL 0x404
 #endif
 
+/*
+ * Read the active arm64 syscall number from the kernel's dedicated
+ * syscall-number regset.
+ *
+ * On arm64, the syscall number is passed in x8 at syscall entry, but
+ * ptrace/seccomp syscall rewriting is controlled through
+ * NT_ARM_SYSTEM_CALL rather than by editing x8 in NT_PRSTATUS. Reading
+ * this regset gives us the syscall number the kernel will actually use[1].
+ *
+ * Returns 0 on success and -1 on ptrace failure.
+ *
+ *   [1] arm64 original reasoning for NT_ARM_SYSTEM_CALL:
+ *   https://lkml.iu.edu/hypermail/linux/kernel/1411.2/01094.html
+ */
 static int arm64_get_syscallno(pid_t pid, int *syscallno) {
     struct iovec iov = { .iov_base = syscallno, .iov_len = sizeof(*syscallno) };
     return ptrace(PTRACE_GETREGSET, pid, (void*)NT_ARM_SYSTEM_CALL, &iov);
 }
 
+/*
+ * Write the active arm64 syscall number through NT_ARM_SYSTEM_CALL.
+ *
+ * This is required for syscall rewriting and syscall skipping on arm64.
+ * In particular, setting the syscall number to a negative value tells the
+ * kernel to skip the syscall, which is how pseudopod emulates successful
+ * setuid/setgid-style calls without allowing them to reach the real kernel.
+ *
+ * Returns 0 on success and -1 on ptrace failure.
+ */
 static int arm64_set_syscallno(pid_t pid, int syscallno) {
     struct iovec iov = { .iov_base = &syscallno, .iov_len = sizeof(syscallno) };
     return ptrace(PTRACE_SETREGSET, pid, (void*)NT_ARM_SYSTEM_CALL, &iov);
 }
 
+/*
+ * Convert pseudopod's syscall context number into the signed int format
+ * expected by the arm64 NT_ARM_SYSTEM_CALL regset.
+ *
+ * Real arm64 syscall numbers fit in a positive int. Pseudopod uses -1,
+ * stored through the unsigned syscall context field, as the sentinel for
+ * "skip this syscall." Values outside the positive int range are therefore
+ * treated as that skip sentinel.
+ */
 static int arm64_ctx_syscallno(uint64_t no) {
     if (no > INT_MAX) return -1;
     return (int)no;
