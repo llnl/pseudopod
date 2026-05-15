@@ -88,28 +88,51 @@ int syscall_set_regs(pid_t pid, const syscall_ctx_t *in) {
 
 #elif defined(__aarch64__)
 #include <asm/ptrace.h>
+#include <limits.h>
 
 #ifndef NT_PRSTATUS
 #define NT_PRSTATUS 1
 #endif
 
+#ifndef NT_ARM_SYSTEM_CALL
+#define NT_ARM_SYSTEM_CALL 0x404
+#endif
+
+static int arm64_get_syscallno(pid_t pid, int *syscallno) {
+    struct iovec iov = { .iov_base = syscallno, .iov_len = sizeof(*syscallno) };
+    return ptrace(PTRACE_GETREGSET, pid, (void*)NT_ARM_SYSTEM_CALL, &iov);
+}
+
+static int arm64_set_syscallno(pid_t pid, int syscallno) {
+    struct iovec iov = { .iov_base = &syscallno, .iov_len = sizeof(syscallno) };
+    return ptrace(PTRACE_SETREGSET, pid, (void*)NT_ARM_SYSTEM_CALL, &iov);
+}
+
+static int arm64_ctx_syscallno(uint64_t no) {
+    if (no > INT_MAX) return -1;
+    return (int)no;
+}
+
 int syscall_get_regs(pid_t pid, syscall_ctx_t *out) {
     struct user_pt_regs regs;
+    int syscallno;
     struct iovec iov = { .iov_base = &regs, .iov_len = sizeof(regs) };
     if (ptrace(PTRACE_GETREGSET, pid, (void*)NT_PRSTATUS, &iov) == -1) return -1;
+    if (arm64_get_syscallno(pid, &syscallno) == -1) return -1;
     for (int i = 0; i < 6; ++i) out->args[i] = regs.regs[i]; // x0-x5
-    out->no = regs.regs[8];         // x8 is syscall number
+    out->no = (uint64_t)(int64_t)syscallno;
     out->ret = regs.regs[0];        // x0 is return value
     return 0;
 }
 
 int syscall_set_regs(pid_t pid, const syscall_ctx_t *in) {
     struct user_pt_regs regs;
+    int syscallno = arm64_ctx_syscallno(in->no);
     struct iovec iov = { .iov_base = &regs, .iov_len = sizeof(regs) };
     if (ptrace(PTRACE_GETREGSET, pid, (void*)NT_PRSTATUS, &iov) == -1) return -1;
+    if (arm64_set_syscallno(pid, syscallno) == -1) return -1;
     for (int i = 0; i < 6; ++i) regs.regs[i] = in->args[i]; // x0-x5
-    regs.regs[8] = in->no;         // x8 is syscall number
-    regs.regs[0] = in->ret;        // x0 is return value
+    if (syscallno < 0) regs.regs[0] = in->ret;
     iov.iov_base = &regs;
     iov.iov_len = sizeof(regs);
     if (ptrace(PTRACE_SETREGSET, pid, (void*)NT_PRSTATUS, &iov) == -1) return -1;
