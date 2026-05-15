@@ -1,9 +1,9 @@
-# Tools and flags. If set in the environment, use that value instead of what’s
-# here.
+# Tools and flags. We are pretty aggro about warnings. If set in the
+# environment, use that value instead of what’s here.
 CXX        ?= g++
 CC         ?= gcc
 AR         ?= ar
-CFLAGS     ?= -Wall -Wextra -O3 -fPIC
+CFLAGS     ?= -Wall -Wextra -Werror -O3 -fPIC
 CXXFLAGS   ?= $(CFLAGS) -std=c++17
 CPPFLAGS   ?= -I./include -I./src
 LDFLAGS    ?= -static-libgcc
