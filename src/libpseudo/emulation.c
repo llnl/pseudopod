@@ -18,7 +18,7 @@
 
 static int handle_syscall(const pseudo_config_syscall_t* cfg, pid_t pid) {
     syscall_ctx_t sc_args;
-    syscall_get_regs(pid, &sc_args);
+    if (syscall_get_regs(pid, &sc_args) == -1) return -1;
 
     pseudo_log_trace("handle_syscall: executing callbacks");
     for (int i = 0; i < cfg->cbs.len; i++) {
@@ -31,7 +31,7 @@ static int handle_syscall(const pseudo_config_syscall_t* cfg, pid_t pid) {
     }
     pseudo_log_trace("handle_syscall: callbacks succeded");
 
-    syscall_set_regs(pid, &sc_args);
+    if (syscall_set_regs(pid, &sc_args) == -1) return -1;
     return 0;
 }
 
