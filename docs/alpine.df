@@ -3,9 +3,9 @@
 #
 # For joy:
 #
-#   $ ch-image build docs/alpine.df docs
+#   $ ch-image build -f docs/alpine.df docs
 #   $ ch-run --unset-env='*' --set-env -b .:/mnt -c /mnt alpine -- \
-#            sh -c 'make clean && make'#
+#            -- sh -c 'make clean && make'
 
 FROM alpine:3.23
 
@@ -23,7 +23,7 @@ FROM alpine:3.23
 RUN apk add clang21 \
             compiler-rt \
             linux-headers \
-            lld20 \
+            lld21 \
             libc++-dev \
             llvm-libunwind-dev
 # Still use GNU Make (because that’s all there is?)
@@ -37,8 +37,6 @@ RUN rm /usr/bin/ld \
 # Use Clang.
 ENV CC=clang
 ENV CXX=clang++
-# Be more aggro about warnings but otherwise use the Makefile defaults.
-ENV CFLAGS="-Werror -Wall -Wextra -O3 -fPIC"
 # (1) Use the LLVM linker and compilter runtime.
 # (2) Omit -static-* because those don’t exist.
 ENV LDFLAGS="-fuse-ld=lld -rtlib=compiler-rt"
