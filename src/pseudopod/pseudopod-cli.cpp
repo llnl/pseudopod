@@ -232,7 +232,7 @@ int parse_args(int argc, char* argv[], ArgOptions& out) {
         {"help",        no_argument,       0, 'h'},
         {0,0,0,0}
     };
-    const char* optstring = "+v:r:t:h";
+    const char* optstring = "+v:r:t:dh";
 
     opterr = 1;
     optind = 1;
@@ -265,6 +265,9 @@ int parse_args(int argc, char* argv[], ArgOptions& out) {
                     std::fprintf(stderr, "Invalid value for --tracer: %s (use on or off)\n", optarg);
                     return 1;
                 }
+                break;
+            case 'd':
+                pseudo_log_set_level(PSEUDO_LOGLEVEL_TRACE);
                 break;
             case 'h':
             default:
@@ -485,13 +488,13 @@ public:
 // -------------------- main --------------------
 
 int main(int argc, char* argv[]) {
+    pseudo_log_set_level(PSEUDO_LOGLEVEL_WARN);
     ArgOptions options{};
     if (parse_args(argc, argv, options) != 0) {
         // usage already printed if needed
         return EXIT_FAILURE;
     }
 
-    pseudo_log_set_level(PSEUDO_LOGLEVEL_WARN);
     RuntimePlan plan(options);
 
     return plan.run();

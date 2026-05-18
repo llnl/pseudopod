@@ -36,6 +36,7 @@ static void usage(char *argv[]) {
         "  -f, --fakeroot         Enable seccomp fakeroot (disables uid virtualization)\n"
         "  -s, --no-tracer        Disable seccomp tracer (attach it later to enable virtualization)\n"
         "  -r, --root             Set both UID and GID to root\n"
+        "  -d, --debug            Enable debug trace output\n"
         "  -h, --help             Show this help message\n"
         "Notes:\n"
         "  If no user/group options are specified, current UID and GID are the default.\n"
@@ -63,7 +64,9 @@ int main(int argc, char *argv[]) {
     int opt_id;
     char* inval;
 
-    while ((opt = getopt_long(argc, argv, "+u:g:nfsrh", long_options, &option_index)) != -1) {
+    pseudo_log_set_level(PSEUDO_LOGLEVEL_WARN);
+
+    while ((opt = getopt_long(argc, argv, "+u:g:fsrdh", long_options, &option_index)) != -1) {
         switch (opt) {
             case 'u': // -u or --uid
                 opt_id = strtoul(optarg, &inval, 10);
@@ -84,6 +87,9 @@ int main(int argc, char *argv[]) {
             case 'r': // --root
                 opt_setid(&default_uid, 0, "uid");
                 opt_setid(&default_gid, 0, "gid");
+                break;
+            case 'd': // -d or --debug
+                pseudo_log_set_level(PSEUDO_LOGLEVEL_TRACE);
                 break;
             case 'h': // -h or --help
             case '?':
@@ -140,8 +146,6 @@ int main(int argc, char *argv[]) {
     if (!fakeroot) {
         virtid_attach_handlers(&cfg, id_states);
     }
-
-    pseudo_log_set_level(PSEUDO_LOGLEVEL_TRACE);
 
     int rc = pseudo_run(&cfg);
 
