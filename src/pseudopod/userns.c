@@ -25,6 +25,12 @@
 
 #define GETPW_MAXBUF 32768
 
+// same as strncpy, but ensure dest is null-terminated
+static inline void strncpy_nt(char* dest, const char* src, int n) {
+    strncpy(dest, src, n);
+    dest[n - 1] = 0;
+}
+
 // privileged mode functions
 
 static int resolve_path(const char* cmd, int maxlen, char* cmd_path) {
@@ -32,7 +38,7 @@ static int resolve_path(const char* cmd, int maxlen, char* cmd_path) {
     int found = 0;
     const char *path_env = getenv("PATH");
     if (strchr(cmd, '/')) {
-        strncpy(cmd_path, cmd, maxlen);
+        strncpy_nt(cmd_path, cmd, maxlen);
         found = 1;
     } else if (path_env) {
         char *saveptr, *token;
@@ -282,7 +288,7 @@ int get_subid_config(subid_range_t *uid_range, subid_range_t *gid_range) {
         free(buf);
         goto fail;
     }
-    strncpy(uname, pw_result->pw_name, 64);
+    strncpy_nt(uname, pw_result->pw_name, 64);
 
     getgrgid_r(gid, &grp, buf, GETPW_MAXBUF, &gr_result);
     if (!gr_result) {
@@ -291,7 +297,7 @@ int get_subid_config(subid_range_t *uid_range, subid_range_t *gid_range) {
         free(buf);
         goto fail;
     }
-    strncpy(gname, gr_result->gr_name, 64);
+    strncpy_nt(gname, gr_result->gr_name, 64);
     free(buf);
 
     if (resolve_path("newuidmap", 256, newuidmap)) {

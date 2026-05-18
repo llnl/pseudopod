@@ -23,6 +23,7 @@ static struct option long_options[] = {
     {"fakeroot",   no_argument,       0, 'f'},
     {"no-tracer",  no_argument,       0, 's'},
     {"root",       no_argument,       0, 'r'},
+    {"debug",      no_argument,       0, 'd'},
     {"help",       no_argument,       0, 'h'},
     {0, 0, 0, 0}
 };
