@@ -26,9 +26,14 @@
 #define GETPW_MAXBUF 32768
 
 // same as strncpy, but ensure dest is null-terminated
-static inline void strncpy_nt(char* dest, const char* src, int n) {
-    strncpy(dest, src, n);
-    dest[n - 1] = 0;
+static inline int strncpy_nt(char* dest, const char* src, int n) {
+    if (n > 0) {
+        strncpy(dest, src, n);
+        dest[n - 1] = 0;
+    } else {
+        return -1;
+    }
+    return 0;
 }
 
 // privileged mode functions
@@ -38,7 +43,9 @@ static int resolve_path(const char* cmd, int maxlen, char* cmd_path) {
     int found = 0;
     const char *path_env = getenv("PATH");
     if (strchr(cmd, '/')) {
-        strncpy_nt(cmd_path, cmd, maxlen);
+        if (strncpy_nt(cmd_path, cmd, maxlen)) {
+            pseudo_die("resolve_path: strncpy failed");
+        }
         found = 1;
     } else if (path_env) {
         char *saveptr, *token;
@@ -288,7 +295,9 @@ int get_subid_config(subid_range_t *uid_range, subid_range_t *gid_range) {
         free(buf);
         goto fail;
     }
-    strncpy_nt(uname, pw_result->pw_name, 64);
+    if (strncpy_nt(uname, pw_result->pw_name, 64)) {
+        pseudo_die("get_subid_config: copy user name failed");
+    }
 
     getgrgid_r(gid, &grp, buf, GETPW_MAXBUF, &gr_result);
     if (!gr_result) {
@@ -297,7 +306,9 @@ int get_subid_config(subid_range_t *uid_range, subid_range_t *gid_range) {
         free(buf);
         goto fail;
     }
-    strncpy_nt(gname, gr_result->gr_name, 64);
+    if (strncpy_nt(uname, gr_result->gr_name, 64)) {
+        pseudo_die("get_subid_config: copy group name failed");
+    }
     free(buf);
 
     if (resolve_path("newuidmap", 256, newuidmap)) {
