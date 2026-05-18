@@ -20,6 +20,20 @@
 #include <unistd.h>
 #include <stddef.h>
 
+#if defined(__aarch64__)
+  #define AUDIT_ARCH_NATIVE AUDIT_ARCH_AARCH64
+#elif defined(__x86_64__)
+  #define AUDIT_ARCH_NATIVE AUDIT_ARCH_X86_64
+#elif defined(__i386__) || defined(__x86__)
+  #define AUDIT_ARCH_NATIVE AUDIT_ARCH_I386
+#elif (defined(__powerpc64__) || defined(__ppc64__)) \
+  && ((defined(__LITTLE_ENDIAN__) || defined(__BYTE_ORDER__)) \
+  && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__))
+  #define AUDIT_ARCH_NATIVE AUDIT_ARCH_PPC64LE
+#else
+  #error "Unsupported architecture"
+#endif
+
 typedef struct sock_fprog seccomp_fprog;
 
 // Filter getters; return pointers to static filter definitions
