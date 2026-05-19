@@ -1,13 +1,13 @@
-# Tools and flags
-CXX        := g++
-CC         := gcc
-AR         := ar
-CFLAGS     := -Wall -Wextra -O3 -fPIC
-CXXFLAGS   := $(CFLAGS) -std=c++17
-CPPFLAGS   := -I./include -I./src
-LDFLAGS    := -static-libgcc
-CXXLDFLAGS := -static-libstdc++ $(LDFLAGS)
-# LIBS       := -lcap
+# Tools and flags. We are pretty aggro about warnings. If set in the
+# environment, use that value instead of what’s here.
+CXX        ?= g++
+CC         ?= gcc
+AR         ?= ar
+CFLAGS     ?= -Wall -Wextra -Werror -O3 -fPIC
+CXXFLAGS   ?= $(CFLAGS) -std=c++17
+CPPFLAGS   ?= -I./include -I./src
+LDFLAGS    ?= -static-libgcc
+CXXLDFLAGS ?= -static-libstdc++ $(LDFLAGS)
 
 # Directories
 SRCDIR   := src
@@ -76,7 +76,7 @@ $(PSEUDO_BIN): $(PSEUDO_OBJS) $(STATIC_LIB)
 
 pseudopod: $(POD_BIN)
 $(POD_BIN): $(POD_OBJS) $(STATIC_LIB)
-	$(CXX) $(CXXFLAGS) -o $@ $(POD_OBJS) $(STATIC_LIB) $(CXXLDFLAGS) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(POD_OBJS) $(STATIC_LIB) $(CXXLDFLAGS)
 
 # Compile rules (objects produced next to sources)
 $(SRCDIR)/libpseudo/%.o: $(SRCDIR)/libpseudo/%.c

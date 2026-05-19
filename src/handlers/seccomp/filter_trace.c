@@ -8,10 +8,12 @@
 #include "seccomp.h"
 
 static struct sock_filter seccomp_filter_trace[] = {
-    // Load arch
+    // verify correct architecture
     BPF_STMT(BPF_LD  | BPF_W | BPF_ABS, offsetof(struct seccomp_data, arch)),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, AUDIT_ARCH_NATIVE, 1, 0),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_KILL_PROCESS),
 
-    // Load syscall number
+    // Load syscall numbers
     BPF_STMT(BPF_LD  | BPF_W | BPF_ABS, offsetof(struct seccomp_data, nr)),
 
     // x86_64 - ACT_TRACE

@@ -59,12 +59,12 @@ static int update_pmi_fd() {
         std::fprintf(stderr, "update_pmi_fd: close(%d) failed: %s\n", old_fd, std::strerror(errno));
     }
 
-    if (!::setenv("PMI_FD", std::to_string(new_fd).c_str(), 1)) {
+    if (::setenv("PMI_FD", std::to_string(new_fd).c_str(), 1)) {
         return 1;
     }
 
     std::string preserve = std::string("--preserve-fds=") + std::to_string(new_fd - 2);
-    if (!::setenv("PRESERVE_FDS", preserve.c_str(), 1)) {
+    if (::setenv("PRESERVE_FDS", preserve.c_str(), 1)) {
         return 1;
     }
 
@@ -229,10 +229,11 @@ int parse_args(int argc, char* argv[], ArgOptions& out) {
         {"tracer",      required_argument, 0, 'v'},
         {"mount-run",   required_argument, 0, 'r'},
         {"mount-tmpfs", required_argument, 0, 't'},
+        {"debug",       no_argument,       0, 'd'},
         {"help",        no_argument,       0, 'h'},
         {0,0,0,0}
     };
-    const char* optstring = "+v:r:t:h";
+    const char* optstring = "+v:r:t:dh";
 
     opterr = 1;
     optind = 1;
@@ -265,6 +266,9 @@ int parse_args(int argc, char* argv[], ArgOptions& out) {
                     std::fprintf(stderr, "Invalid value for --tracer: %s (use on or off)\n", optarg);
                     return 1;
                 }
+                break;
+            case 'd':
+                pseudo_log_set_level(PSEUDO_LOGLEVEL_TRACE);
                 break;
             case 'h':
             default:
@@ -485,13 +489,13 @@ public:
 // -------------------- main --------------------
 
 int main(int argc, char* argv[]) {
+    pseudo_log_set_level(PSEUDO_LOGLEVEL_WARN);
     ArgOptions options{};
     if (parse_args(argc, argv, options) != 0) {
         // usage already printed if needed
         return EXIT_FAILURE;
     }
 
-    pseudo_log_set_level(PSEUDO_LOGLEVEL_WARN);
     RuntimePlan plan(options);
 
     return plan.run();

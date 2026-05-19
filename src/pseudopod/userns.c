@@ -25,14 +25,28 @@
 
 #define GETPW_MAXBUF 32768
 
+// same as strncpy, but ensure dest is null-terminated
+static inline int strncpy_nt(char* dest, const char* src, int n) {
+    if (n > 0) {
+        strncpy(dest, src, n);
+        dest[n - 1] = 0;
+    } else {
+        return -1;
+    }
+    return 0;
+}
+
 // privileged mode functions
 
-int resolve_path(const char* cmd, int maxlen, char* cmd_path) {
+static int resolve_path(const char* cmd, int maxlen, char* cmd_path) {
     // try to resolve the full path using PATH
     int found = 0;
     const char *path_env = getenv("PATH");
     if (strchr(cmd, '/')) {
-        snprintf(cmd_path, strlen(cmd_path), "%s", cmd);
+        if (strncpy_nt(cmd_path, cmd, maxlen)) {
+            pseudo_die("resolve_path: strncpy failed");
+        }
+        found = 1;
     } else if (path_env) {
         char *saveptr, *token;
         char *path_copy = strdup(path_env);
@@ -74,9 +88,9 @@ int check_cap(const char *path, cap_value_t cap) {
 }
 #endif
 
-int get_subid_range(const char *filename, uid_t baseid, const char* name, subid_range_t *range) {
+static int get_subid_range(const char *filename, uid_t baseid, const char* name, subid_range_t *range) {
     char baseid_str[16];
-    snprintf(baseid_str, 8, "%u", baseid);
+    snprintf(baseid_str, 16, "%u", baseid);
 
     FILE *f = fopen(filename, "r");
     if (!f) {
@@ -108,7 +122,7 @@ int get_subid_range(const char *filename, uid_t baseid, const char* name, subid_
     return 0;
 }
 
-int exec_map_helper(char** argv) {
+static int exec_map_helper(char** argv) {
     if (DEBUG_ENABLED) {
         // print full commandline
         fprintf(stderr, "attempt to call %s ", argv[0]);
@@ -147,7 +161,7 @@ int exec_map_helper(char** argv) {
 }
 
 // Run newuidmap or newgidmap
-int run_map_helper(const char* map_cmd, pid_t target_pid, ns_config_t* config) {
+static int run_map_helper(const char* map_cmd, pid_t target_pid, ns_config_t* config) {
     // Construct argv for newuidmap/newgidmap
     char pid_str[32];
     snprintf(pid_str, sizeof(pid_str), "%d", target_pid);
@@ -183,7 +197,7 @@ int run_map_helper(const char* map_cmd, pid_t target_pid, ns_config_t* config) {
 
 // unprivileged mode functions
 
-int write_id_map(const char* path, const char* map, const ssize_t len) {
+static int write_id_map(const char* path, const char* map, const ssize_t len) {
     int rv = 0;
     int fd = open(path, O_WRONLY);
     if (fd == -1) {
@@ -199,14 +213,15 @@ int write_id_map(const char* path, const char* map, const ssize_t len) {
     return rv;
 }
 
-int setup_child_idmap_unpriv(const char* idmap_file, const ns_config_t* nsconfig) {
+static int setup_child_idmap_unpriv(const char* idmap_file, const ns_config_t* nsconfig) {
     int rv = 0;
     char strbuf[64];
 
     if (nsconfig->num_entries > 1) {
         pseudo_log_info("Ignoring additional ID maps in unprivileged mode");
     } else if (nsconfig->num_entries == 0) {
-        pseudo_log_warn("No ID maps specified");
+        pseudo_log_error("No ID maps specified");
+        return -1;
     }
 
     ns_entry_t* nsentry = &nsconfig->entries[0];
@@ -219,7 +234,7 @@ int setup_child_idmap_unpriv(const char* idmap_file, const ns_config_t* nsconfig
     return rv;
 }
 
-int setup_child_userns_unpriv(const pid_t child, const ns_config_t* uid_config, const ns_config_t* gid_config) {
+static int setup_child_userns_unpriv(const pid_t child, const ns_config_t* uid_config, const ns_config_t* gid_config) {
 
     char pidbuf[16];
     char map_fn[32];
@@ -248,6 +263,16 @@ int setup_child_userns_unpriv(const pid_t child, const ns_config_t* uid_config, 
 // utility functions
 
 int get_subid_config(subid_range_t *uid_range, subid_range_t *gid_range) {
+    if (!uid_range) {
+        pseudo_log_warn("get_subid_config: uid_range is null");
+        return -2;
+    }
+
+    if (!gid_range) {
+        pseudo_log_warn("get_subid_config: gid_range is null");
+        return -2;
+    }
+
     char* alloc = (char*) malloc(640);
     if (!alloc) {
         pseudo_log_perror(PSEUDO_LOGLEVEL_FATAL, "malloc");
@@ -270,7 +295,9 @@ int get_subid_config(subid_range_t *uid_range, subid_range_t *gid_range) {
         free(buf);
         goto fail;
     }
-    strncpy(uname, pw_result->pw_name, 64);
+    if (strncpy_nt(uname, pw_result->pw_name, 64)) {
+        pseudo_die("get_subid_config: copy user name failed");
+    }
 
     getgrgid_r(gid, &grp, buf, GETPW_MAXBUF, &gr_result);
     if (!gr_result) {
@@ -279,7 +306,9 @@ int get_subid_config(subid_range_t *uid_range, subid_range_t *gid_range) {
         free(buf);
         goto fail;
     }
-    strncpy(gname, gr_result->gr_name, 63);
+    if (strncpy_nt(uname, gr_result->gr_name, 64)) {
+        pseudo_die("get_subid_config: copy group name failed");
+    }
     free(buf);
 
     if (resolve_path("newuidmap", 256, newuidmap)) {

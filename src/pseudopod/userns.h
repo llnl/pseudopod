@@ -39,8 +39,6 @@ typedef struct {
     ns_config_t gid_config;
 } setup_userns_config_t;
 
-int setup_child_userns_unpriv(pid_t child, const ns_config_t* uid_config, const ns_config_t* gid_config);
-int get_subid_range(const char *filename, uid_t id, const char* name, subid_range_t *range);
 int get_subid_config(subid_range_t *uid_range, subid_range_t *gid_range);
 
 // pseudo callback functions

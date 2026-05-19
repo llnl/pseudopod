@@ -6,10 +6,6 @@
 #include <string.h>
 #include "idtrack.h"
 
-#define ID_UNCHANGED 0xFFFFFFFF
-
-#define ID_MAX 0xFFFFFFFF
-
 // ID state tracker
 
 idtrack_t* idtrack_init() {

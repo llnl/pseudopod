@@ -15,7 +15,11 @@
 #include <handlers/idtrack.h>
 #include <handlers/virtid.h>
 
-#define ID_UNCHANGED 0xFFFFFFFF
+#define ID_UNCHANGED_32 ((uint32_t)-1)
+#define ID_UNCHANGED ((uint64_t)-1)
+#define ID_INVALID ((uint64_t)-2)
+#define RET_EINVAL ((unsigned long long)-EINVAL)
+#define SYSCALL_SKIP -1
 
 #define ID_MAX 0xFFFFFFFF
 
@@ -59,11 +63,31 @@ void erase_id_state(idtrack_t* idstates, pid_t pid) {
 
 // Callback manager
 
+// Normalize ID for get{e,re}id calls
+// Returns: newid: if newid is acceptale as is
+//          ID_UNCHANGED: if newid is -1
+//          ID_INVALID: if newid is otherwise invalid
+static inline uint64_t normalize_id(uint64_t newid) {
+    uint64_t rv = (uint32_t)newid;
+
+    // Update only if not -1 (treat both 32-bit and 64-bit representations)
+    if (newid >= ID_MAX) {
+        rv = ID_INVALID;
+        if (newid == ID_UNCHANGED_32 || newid == ID_UNCHANGED) {
+            rv = ID_UNCHANGED;
+        }
+    }
+
+    pseudo_log_trace("normalize_id(req: %lu) -> %lu", newid, rv);
+
+    return rv;
+}
+
 static inline void handle_setid(syscall_ctx_t* sc, id_state_t* idstate, int isgid) {
-    sc->no = -1;
+    sc->no = SYSCALL_SKIP;
     uint64_t newv = sc->args[0];
     if (newv > ID_MAX) {
-        sc->ret = (unsigned long long)-EINVAL;
+        sc->ret = RET_EINVAL;
         return;
     }
     if (idstate->id[0].effective == 0) {
@@ -74,42 +98,40 @@ static inline void handle_setid(syscall_ctx_t* sc, id_state_t* idstate, int isgi
 }
 
 static inline void handle_setreid(syscall_ctx_t* sc, ids_t* id) {
-    sc->no = -1;
-    uint64_t new_real      = sc->args[0];
-    uint64_t new_effective = sc->args[1];
+    sc->no = SYSCALL_SKIP;
+    uint64_t new_real      = normalize_id(sc->args[0]);
+    uint64_t new_effective = normalize_id(sc->args[1]);
+
+    if (new_real == ID_INVALID || new_effective == ID_INVALID) {
+        sc->ret = RET_EINVAL;
+        return;
+    }
 
     if (new_effective != ID_UNCHANGED) {
-        if (new_effective > ID_MAX) {
-            sc->ret = (unsigned long long)-EINVAL;
-            return;
-        }
         id->effective = (uint32_t)new_effective;
         if (id->effective != id->real) id->saved = id->effective;
     }
+
     if (new_real != ID_UNCHANGED) {
-        if (new_real > ID_MAX) {
-            sc->ret = (unsigned long long)-EINVAL;
-            return;
-        }
         id->real = (uint32_t)new_real;
         id->saved = id->effective;
     }
+
     sc->ret = 0;
 }
 
 static inline void handle_setresid(syscall_ctx_t* sc, ids_t* id) {
-    sc->no = -1;
-    uint64_t new_real      = sc->args[0];
-    uint64_t new_effective = sc->args[1];
-    uint64_t new_saved     = sc->args[2];
+    sc->no = SYSCALL_SKIP;
+    uint64_t new_real      = normalize_id(sc->args[0]);
+    uint64_t new_effective = normalize_id(sc->args[1]);
+    uint64_t new_saved     = normalize_id(sc->args[2]);
 
-    if (new_real      > ID_MAX ||
-        new_effective > ID_MAX ||
-        new_saved     > ID_MAX) {
-        sc->ret = (unsigned long long)-EINVAL;
+    if (new_real == ID_INVALID || new_effective == ID_INVALID || new_saved == ID_INVALID) {
+        sc->ret = RET_EINVAL;
         return;
     }
 
+    // Update only if not -1 (treat both 32-bit and 64-bit representations)
     if (new_real      != ID_UNCHANGED) id->real      = (uint32_t)new_real;
     if (new_effective != ID_UNCHANGED) id->effective = (uint32_t)new_effective;
     if (new_saved     != ID_UNCHANGED) id->saved     = (uint32_t)new_saved;
@@ -160,22 +182,22 @@ int handle_uid_syscalls(pid_t pid, syscall_ctx_t* sc, void* v_args) {
       case __NR_getuid:
         pseudo_log_trace("getuid: %lu", (unsigned long)id_state->id[0].real);
         sc->ret = id_state->id[0].real;
-        sc->no = -1;
+        sc->no = SYSCALL_SKIP;
         break;
       case __NR_geteuid:
         pseudo_log_trace("geteuid: %lu", (unsigned long)id_state->id[0].effective);
         sc->ret = id_state->id[0].effective;
-        sc->no = -1;
+        sc->no = SYSCALL_SKIP;
         break;
       case __NR_getgid:
         pseudo_log_trace("getgid: %lu", (unsigned long)id_state->id[1].real);
         sc->ret = id_state->id[1].real;
-        sc->no = -1;
+        sc->no = SYSCALL_SKIP;
         break;
       case __NR_getegid:
         pseudo_log_trace("getegid: %lu", (unsigned long)id_state->id[1].effective);
         sc->ret = id_state->id[1].effective;
-        sc->no = -1;
+        sc->no = SYSCALL_SKIP;
         break;
       case __NR_getresuid: {
         pseudo_log_trace("getresuid: %lu %lu %lu",

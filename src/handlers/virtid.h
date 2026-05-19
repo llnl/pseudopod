@@ -5,8 +5,6 @@
 #define LIBPSEUDO_VIRTID_H
 #include <handlers/idtrack.h>
 
-#define ID_UNCHANGED 0xFFFFFFFF
-
 typedef struct {
     pseudo_cb_t parent;
     pseudo_cb_t tracer;
