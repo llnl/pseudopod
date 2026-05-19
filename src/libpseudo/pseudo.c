@@ -34,19 +34,6 @@ void pseudo_free_config(pseudo_config_t* cfg) {
     memset(cfg, 0, sizeof(pseudo_config_t));
 }
 
-static void parent_exec_callbacks(pid_t child, const pseudo_config_parent_t* cfg) {
-    pseudo_log_trace("parent_exec_callbacks: executing parent callbacks");
-    for (int i = 0; i < cfg->cbs.len; i++) {
-        pseudo_log_trace("parent_exec_callbacks: executing parent callback %d", i);
-        void* cb_args = cfg->cbs.callbacks[i].cbargs;
-        parent_cb_func_t* cb = (parent_cb_func_t*) cfg->cbs.callbacks[i].cb;
-        if (cb(child, cb_args)) {
-            pseudo_die("parent_exec_callbacks: post-clone callback returned nonzero");
-        }
-    }
-    pseudo_log_trace("parent_exec_callbacks: parent callbacks succeded");
-}
-
 static void child_exec_callbacks(const pseudo_config_child_t* cfg) {
     pseudo_log_trace("child_exec_callbacks: executing callbacks");
     for (int i = 0; i < cfg->cbs.len; i++) {
@@ -87,13 +74,15 @@ int pseudo_run(const pseudo_config_t* pseudo_cfg) {
     if (child > 0) {
         // parent
         pseudo_log_debug("pseudo_run: handling events");
-        pseudo_fork_wait(child, pseudo_cfg);
+        return pseudo_fork_wait(child, pseudo_cfg);
     } else if (child == 0) {
         // child
         pseudo_log_debug("pseudo_run: child_exec");
         child_exec(&pseudo_cfg->cfg_child); // does not return
     }
-   return 0;
+
+    //unreachable
+    return 0;
 }
 
 int pseudo_fork(const pseudo_config_t* pseudo_cfg) {
@@ -118,9 +107,6 @@ int pseudo_fork(const pseudo_config_t* pseudo_cfg) {
         child_exec_callbacks(&pseudo_cfg->cfg_child);
     } else {
         pseudo_log_trace("pseudo_fork: parent: child pid is %d", child);
-
-        // Execute parent callbacks (user-attached modules, e.g., virtid)
-        parent_exec_callbacks(child, &pseudo_cfg->cfg_parent);
     }
 
     return child;

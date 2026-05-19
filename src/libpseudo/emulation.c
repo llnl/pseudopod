@@ -16,7 +16,7 @@
 #include <handlers/idtrack.h>
 #include <pseudo/syscall.h>
 
-static int handle_syscall(const pseudo_config_syscall_t* cfg, pid_t pid) {
+static inline int handle_syscall(const pseudo_config_syscall_t* cfg, pid_t pid) {
     syscall_ctx_t sc_args;
     if (syscall_get_regs(pid, &sc_args) == -1) return -1;
 
@@ -35,6 +35,19 @@ static int handle_syscall(const pseudo_config_syscall_t* cfg, pid_t pid) {
     return 0;
 }
 
+static void parent_exec_callbacks(pid_t child, const pseudo_config_parent_t* cfg) {
+    pseudo_log_trace("parent_exec_callbacks: executing parent callbacks");
+    for (int i = 0; i < cfg->cbs.len; i++) {
+        pseudo_log_trace("parent_exec_callbacks: executing parent callback %d", i);
+        void* cb_args = cfg->cbs.callbacks[i].cbargs;
+        parent_cb_func_t* cb = (parent_cb_func_t*) cfg->cbs.callbacks[i].cb;
+        if (cb(child, cb_args)) {
+            pseudo_die("parent_exec_callbacks: post-clone callback returned nonzero");
+        }
+    }
+    pseudo_log_trace("parent_exec_callbacks: parent callbacks succeded");
+}
+
 static const int PTRACE_OPTS=PTRACE_O_TRACEFORK
                         | PTRACE_O_TRACEVFORK
                         | PTRACE_O_TRACECLONE
@@ -43,7 +56,7 @@ static const int PTRACE_OPTS=PTRACE_O_TRACEFORK
                         | PTRACE_O_TRACESECCOMP
                         | PTRACE_O_EXITKILL;
 
-static void set_ptrace_opts(pid_t pid) {
+static inline void set_ptrace_opts(pid_t pid) {
     pseudo_log_trace("set_ptrace_opts: target=%d", pid);
     if (ptrace(PTRACE_SETOPTIONS, pid, 0, PTRACE_OPTS) == -1) {
         if (errno != ESRCH) {
@@ -53,14 +66,14 @@ static void set_ptrace_opts(pid_t pid) {
     }
 }
 
-static void continue_tracee(pid_t pid, int sig) {
+static inline void continue_tracee(pid_t pid, int sig) {
     pseudo_log_trace("continue_tracee: target=%d sig=%d", pid, sig);
     if (ptrace(PTRACE_CONT, pid, 0, (void*)(long)sig) == -1) {
         if (errno != ESRCH) pseudo_log_debug("continue_tracee: cont %d: %s", pid, strerror(errno));
     }
 }
 
-static void attach_child(pid_t newpid) {
+static inline void attach_child(pid_t newpid) {
     pseudo_log_trace("attach_child: PTRACE_ATTACH: %d", newpid);
     // try to fallback to ATTACH
     if (ptrace(PTRACE_ATTACH, newpid, 0, 0) == -1) {
@@ -74,7 +87,7 @@ static void attach_child(pid_t newpid) {
     set_ptrace_opts(newpid);
 }
 
-static void seize_child(pid_t newpid) {
+static inline void seize_child(pid_t newpid) {
     if (ptrace(PTRACE_SEIZE, newpid, 0, PTRACE_OPTS) == -1) {
         if (errno == ESRCH || errno == EPERM) {
             pseudo_log_warn("seize_child: PTRACE_SEIZE failed on PID: %d : %s", newpid, strerror(errno));
@@ -87,14 +100,40 @@ static void seize_child(pid_t newpid) {
     }
 }
 
+// wait for initial child to SIGSTOP and attach
+static void attach_initial_child(pid_t child, const pseudo_config_t* cfg) {
+    // children should automatically inherit this process as a ptracer
+    seize_child(child);
+
+    int status = 0;
+    for (;;) {
+        pid_t pid = waitpid(child, &status, __WALL);
+        if (pid == -1) {
+            if (errno == EINTR) { continue; }
+            pseudo_log_perror(PSEUDO_LOGLEVEL_ERROR, "attach_initial_child: waitpid");
+            pseudo_die("attach_initial_child: initial waitpid failed");
+        }
+        break;
+    }
+
+    if (WIFSTOPPED(status)) {
+        // Execute parent callbacks (user-attached modules, e.g., virtid)
+        parent_exec_callbacks(child, &cfg->cfg_parent);
+        continue_tracee(child, 0);
+    } else if (WIFEXITED(status)) {
+        pseudo_log_error("attach_initial_child: child exited with status %d", WEXITSTATUS(status));
+        pseudo_die("attach_initial_child failed");
+    } else {
+        pseudo_die("attach_initial_child: invalid child state");
+    }
+}
+
 int handle_events(pid_t child, const pseudo_config_t* cfg) {
     int status = 0;
-    // attach to initial child while it's in SIGSTOP
-    // children should be attached and traced automatically if we use SEIZE
-    seize_child(child);
-    continue_tracee(child, 0);
-
     int last_return = -1;
+    
+    attach_initial_child(child, cfg);
+    
     for (;;) {
         pid_t pid = waitpid(-1, &status, __WALL);
         if (pid == -1) {
@@ -131,11 +170,15 @@ int handle_events(pid_t child, const pseudo_config_t* cfg) {
             if (sig == SIGTRAP) {
                 event = (unsigned)((status >> 16) & 0xffff);
                 pseudo_log_trace("handle_events: pid %d: SIGTRAP event=%d", pid, sig, event);
-                if (event == PTRACE_EVENT_SECCOMP) {
-                    pseudo_log_debug("handle_events: caught syscall");
+                switch (event) {
+                    case PTRACE_EVENT_SECCOMP:
+                     pseudo_log_debug("handle_events: caught syscall");
                     if (handle_syscall(&cfg->cfg_syscall, pid) == -1) {
                         pseudo_log_perror(PSEUDO_LOGLEVEL_WARN, "handle_syscall");
                     }
+                    // fallthrough
+                default:
+                    // eat unknown SIGTRAP events
                     continue_tracee(pid, 0);
                     continue;
                 }

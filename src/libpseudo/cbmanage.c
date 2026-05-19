@@ -9,12 +9,21 @@
 
 // Callback manager
 
-static void _pseudo_cb_grow(pseudo_callbacks_t* cbs) {
-    cbs->callbacks = (pseudo_cb_t*) reallocarray(cbs->callbacks, cbs->size+8, sizeof(pseudo_cb_t));
+#define _PSEUDO_CB_REALLOC_STEP 8
+#define _PSEUDO_CB_REALLOC_MAX (2<<10)
+
+static inline void _pseudo_cb_grow(pseudo_callbacks_t* cbs) {
+    int newsize = cbs->size + _PSEUDO_CB_REALLOC_STEP;
+    if (newsize > _PSEUDO_CB_REALLOC_MAX || newsize < 0) {
+        pseudo_die("_pseudo_cb_grow: too big");
+    }
+
+    cbs->callbacks = (pseudo_cb_t*) reallocarray(cbs->callbacks, newsize, sizeof(pseudo_cb_t));
     if (!cbs->callbacks) {
         pseudo_die("_pseudo_cb_grow: failed to allocate memory: ");
     }
-    cbs->size += 8;
+
+    cbs->size = newsize;
 }
 
 void pseudo_cb_init(pseudo_callbacks_t* cbs) {
